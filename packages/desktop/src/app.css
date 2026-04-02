@@ -1,0 +1,24 @@
+/*
+ * Copyright 2026 Hancom Inc. All rights reserved.
+ *
+ * https://www.hancom.com/
+ */
+
+@import "tailwindcss";
+@import "@mariozechner/mini-lit/dist/themes/default.css";
+@import "@mariozechner/pi-web-ui/app.css";
+
+/* Tauri 데스크탑 앱용 스타일 */
+body {
+  overflow: hidden;
+  user-select: none;
+}
+
+/* 입력 필드, 코드 블록 등은 텍스트 선택 허용 */
+input,
+textarea,
+pre,
+code,
+[contenteditable] {
+  user-select: text;
+}

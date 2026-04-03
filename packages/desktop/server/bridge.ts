@@ -5,7 +5,9 @@
  */
 
 import { type ChildProcess, spawn } from "node:child_process";
-import { resolve } from "node:path";
+import { resolve, join } from "node:path";
+import { readFileSync, existsSync } from "node:fs";
+import { homedir } from "node:os";
 import { WebSocketServer, WebSocket } from "ws";
 
 const WS_PORT = parseInt(process.env.WS_PORT || "3001", 10);
@@ -82,6 +84,55 @@ function sendToRpc(json: string) {
 	}
 }
 
+// --- MCP Management ---
+
+const TOKEN_FILE = join(homedir(), ".config", "han", "mcp-tokens.json");
+
+function getMcpStatus(): { servers: Array<{ key: string; name: string; connected: boolean; expiresAt?: number }> } {
+	const servers = [
+		{ key: "atlassian", name: "Atlassian", url: "https://mcp.atlassian.com/v1/mcp" },
+	];
+
+	let tokens: Record<string, any> = {};
+	try {
+		if (existsSync(TOKEN_FILE)) {
+			tokens = JSON.parse(readFileSync(TOKEN_FILE, "utf-8"));
+		}
+	} catch {}
+
+	return {
+		servers: servers.map((s) => {
+			const token = tokens[s.key];
+			const hasToken = !!token?.accessToken;
+			const expiresAt = token?.expiresAt;
+			const isExpired = expiresAt ? Date.now() > expiresAt : false;
+			return {
+				key: s.key,
+				name: s.name,
+				connected: hasToken && !isExpired,
+				expiresAt,
+			};
+		}),
+	};
+}
+
+function handleMcpCommand(ws: WebSocket, data: any): boolean {
+	switch (data.type) {
+		case "mcp_status": {
+			const status = getMcpStatus();
+			ws.send(JSON.stringify({ type: "mcp_status_response", id: data.id, ...status }));
+			return true;
+		}
+		case "mcp_connect": {
+			// RPC 에이전트에 /mcp-connect 명령 전달
+			sendToRpc(JSON.stringify({ type: "prompt", id: data.id, message: "/mcp-connect" }));
+			return true;
+		}
+		default:
+			return false;
+	}
+}
+
 export function startBridge() {
 	state.rpcProcess = spawnRpcAgent();
 	setupRpcStdoutReader(state.rpcProcess);
@@ -97,8 +148,12 @@ export function startBridge() {
 		}
 		state.wsClient = ws;
 
-		ws.on("message", (data) => {
-			const message = data.toString();
+		ws.on("message", (raw) => {
+			const message = raw.toString();
+			try {
+				const parsed = JSON.parse(message);
+				if (handleMcpCommand(ws, parsed)) return;
+			} catch {}
 			sendToRpc(message);
 		});
 

@@ -23,6 +23,7 @@ import {
 import { html, render } from "lit";
 import { History, Plus, Settings } from "lucide";
 import "./app.css";
+import { McpSettingsTab } from "./mcp-settings-tab.js";
 import { icon } from "@mariozechner/mini-lit";
 import { Button } from "@mariozechner/mini-lit/dist/Button.js";
 import { Input } from "@mariozechner/mini-lit/dist/Input.js";
@@ -294,7 +295,7 @@ const renderApp = () => {
 					variant: "ghost",
 					size: "sm",
 					children: icon(Settings, "sm"),
-					onClick: () => SettingsDialog.open([new ProvidersModelsTab(), new ProxyTab()]),
+					onClick: () => SettingsDialog.open([new ProvidersModelsTab(), new ProxyTab(), new McpSettingsTab()]),
 					title: "Settings",
 				})}
         </div>

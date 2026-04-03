@@ -13,7 +13,7 @@
     "tauri:build": "tauri build"
   },
   "dependencies": {
-    "@hancom/hwp-cli": "^0.1.1",
+    "@hancom/hwp-cli": "^0.1.2",
     "@mariozechner/mini-lit": "^0.2.0",
     "@mariozechner/pi-ai": "file:../ai",
     "@mariozechner/pi-web-ui": "file:../web-ui",

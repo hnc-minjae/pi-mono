@@ -1,5 +1,5 @@
 {
-  "name": "@anthropics/han-ai-desktop",
+  "name": "@hancom/han-ai-desktop",
   "version": "0.1.0",
   "private": true,
   "type": "module",

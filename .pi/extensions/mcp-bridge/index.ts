@@ -222,29 +222,31 @@ export default async function mcpBridgeExtension(pi: ExtensionAPI) {
 		},
 	});
 
-	// 자동 연결 시도
-	for (const config of MCP_SERVERS) {
-		console.log(`[mcp-bridge] Connecting to ${config.name} (${config.url})...`);
+	// session_start 이벤트에서 도구 등록 (bindCore() 이후이므로 refreshTools()가 동작)
+	pi.on("session_start", async () => {
+		for (const config of MCP_SERVERS) {
+			console.log(`[mcp-bridge] Connecting to ${config.name} (${config.url})...`);
 
-		const client = await connectWithOAuth(config);
-		if (!client) {
-			console.log(`[mcp-bridge] ${config.name}: 자동 연결 실패. /mcp-connect 로 수동 연결하세요.`);
-			continue;
-		}
-
-		try {
-			const toolsResult = await client.listTools();
-			const tools = toolsResult.tools || [];
-
-			console.log(`[mcp-bridge] ${config.name}: ${tools.length} tools available`);
-
-			for (const tool of tools) {
-				registerMcpTool(pi, client, config.prefix, tool as McpToolSchema);
+			const client = await connectWithOAuth(config);
+			if (!client) {
+				console.log(`[mcp-bridge] ${config.name}: 자동 연결 실패. /mcp-connect 로 수동 연결하세요.`);
+				continue;
 			}
 
-			console.log(`[mcp-bridge] ${config.name}: all tools registered`);
-		} catch (err: any) {
-			console.error(`[mcp-bridge] Failed to list tools for ${config.name}:`, err?.message);
+			try {
+				const toolsResult = await client.listTools();
+				const tools = toolsResult.tools || [];
+
+				console.log(`[mcp-bridge] ${config.name}: ${tools.length} tools available`);
+
+				for (const tool of tools) {
+					registerMcpTool(pi, client, config.prefix, tool as McpToolSchema);
+				}
+
+				console.log(`[mcp-bridge] ${config.name}: all tools registered`);
+			} catch (err: any) {
+				console.error(`[mcp-bridge] Failed to list tools for ${config.name}:`, err?.message);
+			}
 		}
-	}
+	});
 }

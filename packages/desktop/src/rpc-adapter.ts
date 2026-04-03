@@ -66,14 +66,8 @@ export class RpcAgent {
 
 		if (!text) return;
 
-		// Add user message to local state
-		const userMsg: AgentMessage = typeof message === "string"
-			? { role: "user", content: [{ type: "text", text: message }], timestamp: Date.now() }
-			: message;
-		this._state.messages = [...this._state.messages, userMsg];
-
-		this._state.isStreaming = true;
-		this.emitEvent({ type: "agent_start" });
+		// Don't add user message locally — RPC will send message_start/message_end for it.
+		// Don't emit agent_start locally — RPC will send it.
 		this.send({ type: "prompt", message: text });
 	}
 
@@ -136,10 +130,7 @@ export class RpcAgent {
 							.join("") || "";
 
 		if (!text) return;
-
-		this._state.isStreaming = true;
-		this.emitEvent({ type: "agent_start" });
-		this.send({ type: "prompt", message: text });
+		this.send({ type: "steer", message: text });
 	}
 
 	abort() {
@@ -220,18 +211,11 @@ export class RpcAgent {
 				this._state.isStreaming = true;
 				break;
 
-			case "message_update": {
-				const msg = event.message;
-				if (msg) {
-					const lastMsg = this._state.messages[this._state.messages.length - 1];
-					if (lastMsg?.role === "assistant") {
-						this._state.messages[this._state.messages.length - 1] = msg;
-					} else {
-						this._state.messages.push(msg);
-					}
-				}
+			case "message_update":
+				// Don't add to _state.messages during streaming.
+				// AgentInterface's streaming-message-container handles display.
+				// Messages are added on message_end only.
 				break;
-			}
 
 			case "message_end": {
 				const msg = event.message;
@@ -248,6 +232,10 @@ export class RpcAgent {
 
 			case "agent_end":
 				this._state.isStreaming = false;
+				// Sync final messages from RPC agent
+				if (event.messages) {
+					this._state.messages = [...event.messages];
+				}
 				break;
 		}
 

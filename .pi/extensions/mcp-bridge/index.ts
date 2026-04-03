@@ -16,6 +16,9 @@
 // 사내 SSL 프록시 환경에서 인증서 검증 우회 (개발 환경 전용)
 process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
 
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+import { homedir } from "node:os";
 import { Type } from "@mariozechner/pi-ai";
 import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
@@ -247,6 +250,19 @@ export default async function mcpBridgeExtension(pi: ExtensionAPI) {
 			} catch (err: any) {
 				console.error(`[mcp-bridge] Failed to list tools for ${config.name}:`, err?.message);
 			}
+		}
+	});
+
+	// 매 턴마다 han-config.md 내용을 시스템 프롬프트에 주입
+	pi.on("before_agent_start", async () => {
+		try {
+			const configPath = join(homedir(), ".config", "han", "han-config.md");
+			const config = readFileSync(configPath, "utf-8");
+			return {
+				systemPrompt: `\n\n## 사용자 환경 설정 (han-config.md)\n\n${config}`,
+			};
+		} catch {
+			return {};
 		}
 	});
 }

@@ -364,6 +364,9 @@ export class AgentInterface extends LitElement {
 	}
 
 	override render() {
+		// Read _renderTick so Lit re-renders when agent events increment it
+		void this._renderTick;
+
 		if (!this.session)
 			return html`<div class="p-4 text-center text-muted-foreground">${i18n("No session set")}</div>`;
 

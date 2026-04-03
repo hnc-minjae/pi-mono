@@ -1,3 +1,9 @@
+/*
+ * Copyright 2025 Hancom Inc. All rights reserved.
+ *
+ * https://www.hancom.com/
+ */
+
 import "@mariozechner/mini-lit/dist/ThemeToggle.js";
 import { Agent, type AgentMessage } from "@mariozechner/pi-agent-core";
 import { getModel } from "@mariozechner/pi-ai";
@@ -169,7 +175,7 @@ Available tools:
 - Artifacts: Create interactive HTML, SVG, Markdown, and text artifacts
 
 Feel free to use these tools when needed to provide accurate and helpful responses.`,
-			model: getModel("anthropic", "claude-sonnet-4-5-20250929"),
+			model: getModel("anthropic", "claude-sonnet-4-6"),
 			thinkingLevel: "off",
 			messages: [],
 			tools: [],

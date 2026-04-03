@@ -18,12 +18,12 @@ import {
 	SessionsStore,
 	SettingsDialog,
 	SettingsStore,
+	SettingsTab,
 	setAppStorage,
 } from "@mariozechner/pi-web-ui";
 import { html, render } from "lit";
 import { History, Plus, Settings } from "lucide";
 import "./app.css";
-import { McpSettingsTab } from "./mcp-settings-tab.js";
 import { icon } from "@mariozechner/mini-lit";
 import { Button } from "@mariozechner/mini-lit/dist/Button.js";
 import { Input } from "@mariozechner/mini-lit/dist/Input.js";
@@ -296,8 +296,7 @@ const renderApp = () => {
 					size: "sm",
 					children: icon(Settings, "sm"),
 					onClick: () => {
-							const mcpTab = new McpSettingsTab();
-							mcpTab.setAgent(agent);
+							const mcpTab = createMcpTab(agent);
 							SettingsDialog.open([new ProvidersModelsTab(), new ProxyTab(), mcpTab]);
 						},
 					title: "Settings",
@@ -350,3 +349,90 @@ async function initApp() {
 }
 
 initApp();
+
+// ============================================================================
+// MCP Settings Tab (인라인 정의)
+// ============================================================================
+function createMcpTab(rpcAgent: RpcAgent): SettingsTab {
+	const el = document.createElement("div") as any;
+
+	// SettingsTab 인터페이스 구현
+	el.getTabName = () => "MCP";
+	el.createRenderRoot = () => el;
+
+	const servers = [
+		{ key: "atlassian", name: "Atlassian (Jira/Confluence)", connected: false, expiresAt: 0 },
+	];
+
+	function renderMcpContent() {
+		render(
+			html`
+				<div class="space-y-4">
+					<div>
+						<h3 class="text-lg font-semibold text-foreground">MCP 서버 연결</h3>
+						<p class="text-sm text-muted-foreground mt-1">
+							외부 서비스(Jira, Confluence 등)에 연결하여 에이전트가 도구로 사용할 수 있습니다.
+						</p>
+					</div>
+					<div class="space-y-3">
+						${servers.map(
+							(s) => html`
+							<div class="flex items-center justify-between p-3 border border-border rounded-lg">
+								<div>
+									<div class="flex items-center gap-2">
+										<span class="font-medium text-foreground">${s.name}</span>
+										${s.connected
+											? html`<span class="text-xs px-2 py-0.5 bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300 rounded-full">연결됨</span>`
+											: html`<span class="text-xs px-2 py-0.5 bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300 rounded-full">미연결</span>`}
+									</div>
+									${s.connected && s.expiresAt
+										? html`<div class="text-xs text-muted-foreground mt-1">토큰 만료: ${formatExpiry(s.expiresAt)}</div>`
+										: ""}
+								</div>
+								${s.connected
+									? html`<button class="text-sm px-3 py-1 rounded border border-border hover:bg-secondary" @click=${() => connectMcp(s.key)}>재연결</button>`
+									: html`<button class="text-sm px-3 py-1 rounded bg-primary text-primary-foreground hover:bg-primary/90" @click=${() => connectMcp(s.key)}>연결</button>`}
+							</div>
+						`,
+						)}
+					</div>
+				</div>
+			`,
+			el,
+		);
+	}
+
+	function formatExpiry(ts: number): string {
+		if (!ts) return "";
+		const r = ts - Date.now();
+		if (r <= 0) return "만료됨";
+		return `${Math.floor(r / 3600000)}시간 ${Math.floor((r % 3600000) / 60000)}분 남음`;
+	}
+
+	function connectMcp(key: string) {
+		rpcAgent.mcpConnect(key);
+		setTimeout(refreshStatus, 15000);
+	}
+
+	async function refreshStatus() {
+		try {
+			const resp = await rpcAgent.getMcpStatus();
+			if (resp?.servers) {
+				for (const s of resp.servers) {
+					const local = servers.find((ls) => ls.key === s.key);
+					if (local) {
+						local.connected = s.connected;
+						local.expiresAt = s.expiresAt || 0;
+					}
+				}
+			}
+		} catch {}
+		renderMcpContent();
+	}
+
+	// 초기 렌더 + 상태 갱신
+	renderMcpContent();
+	refreshStatus();
+
+	return el as unknown as SettingsTab;
+}

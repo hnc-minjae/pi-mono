@@ -5,15 +5,11 @@
  */
 
 import "@mariozechner/mini-lit/dist/ThemeToggle.js";
-import { Agent, type AgentMessage } from "@mariozechner/pi-agent-core";
-import { getModel } from "@mariozechner/pi-ai";
+import type { AgentMessage } from "@mariozechner/pi-agent-core";
 import {
-	type AgentState,
-	ApiKeyPromptDialog,
 	AppStorage,
 	ChatPanel,
 	CustomProvidersStore,
-	createJavaScriptReplTool,
 	IndexedDBStorageBackend,
 	ProviderKeysStore,
 	ProvidersModelsTab,
@@ -25,13 +21,13 @@ import {
 	setAppStorage,
 } from "@mariozechner/pi-web-ui";
 import { html, render } from "lit";
-import { FolderOpen, History, Plus, Settings } from "lucide";
+import { History, Plus, Settings } from "lucide";
 import "./app.css";
 import { icon } from "@mariozechner/mini-lit";
 import { Button } from "@mariozechner/mini-lit/dist/Button.js";
 import { Input } from "@mariozechner/mini-lit/dist/Input.js";
-import { createSystemNotification, customConvertToLlm, registerCustomMessageRenderers } from "./custom-messages.js";
-import { isTauri, openFileDialog, readFileText } from "./tauri-bridge.js";
+import { registerCustomMessageRenderers } from "./custom-messages.js";
+import { RpcAgent } from "./rpc-adapter.js";
 
 registerCustomMessageRenderers();
 
@@ -67,9 +63,11 @@ let currentSessionId: string | undefined;
 let currentTitle = "";
 let prevTitle = "";
 let isEditingTitle = false;
-let agent: Agent;
+let agent: RpcAgent;
 let chatPanel: ChatPanel;
 let agentUnsubscribe: (() => void) | undefined;
+
+const WS_URL = "ws://localhost:3001";
 
 const generateTitle = (messages: AgentMessage[]): string => {
 	const firstUserMsg = messages.find((m) => m.role === "user" || m.role === "user-with-attachments");
@@ -149,31 +147,17 @@ const updateUrl = (sessionId: string) => {
 	window.history.replaceState({}, "", url);
 };
 
-const createAgent = async (initialState?: Partial<AgentState>) => {
+const createAgent = async () => {
 	if (agentUnsubscribe) {
 		agentUnsubscribe();
 	}
 
-	agent = new Agent({
-		initialState: initialState || {
-			systemPrompt: `You are a helpful AI assistant running in Han AI Orchestrator desktop app.
-
-Available tools:
-- JavaScript REPL: Execute JavaScript code in a sandboxed browser environment
-- Artifacts: Create interactive HTML, SVG, Markdown, and text artifacts
-
-Feel free to use these tools when needed to provide accurate and helpful responses.`,
-			model: getModel("openai", "gpt-5-chat-latest"),
-			thinkingLevel: "off",
-			messages: [],
-			tools: [],
-		},
-		convertToLlm: customConvertToLlm,
-	});
+	agent = new RpcAgent(WS_URL);
+	await agent.connect();
 
 	agentUnsubscribe = agent.subscribe((event: any) => {
-		if (event.type === "state-update") {
-			const messages = event.state.messages;
+		if (event.type === "agent_end" || event.type === "message_end" || event.type === "agent_start") {
+			const messages = agent.state.messages;
 			if (!currentTitle && shouldSaveSession(messages)) {
 				currentTitle = generateTitle(messages);
 			}
@@ -184,8 +168,6 @@ Feel free to use these tools when needed to provide accurate and helpful respons
 			if (currentSessionId) {
 				saveSession();
 			}
-			// Only re-render header when title changes, not on every state update.
-			// ChatPanel handles its own message rendering internally.
 			if (currentTitle !== prevTitle) {
 				prevTitle = currentTitle;
 				renderApp();
@@ -193,72 +175,19 @@ Feel free to use these tools when needed to provide accurate and helpful respons
 		}
 	});
 
-	await chatPanel.setAgent(agent, {
-		onApiKeyRequired: async (provider: string) => {
-			return await ApiKeyPromptDialog.prompt(provider);
-		},
-		toolsFactory: (_agent, _agentInterface, _artifactsPanel, runtimeProvidersFactory) => {
-			const replTool = createJavaScriptReplTool();
-			replTool.runtimeProvidersFactory = runtimeProvidersFactory;
-			return [replTool];
-		},
+	await chatPanel.setAgent(agent as any, {
+		toolsFactory: () => [],
 	});
 };
 
-const loadSession = async (sessionId: string): Promise<boolean> => {
-	if (!storage.sessions) return false;
-	const sessionData = await storage.sessions.get(sessionId);
-	if (!sessionData) return false;
-
-	currentSessionId = sessionId;
-	const metadata = await storage.sessions.getMetadata(sessionId);
-	currentTitle = metadata?.title || "";
-
-	await createAgent({
-		model: sessionData.model,
-		thinkingLevel: sessionData.thinkingLevel,
-		messages: sessionData.messages,
-		tools: [],
-	});
-
-	updateUrl(sessionId);
-	renderApp();
-	return true;
+const loadSession = async (_sessionId: string): Promise<boolean> => {
+	return false;
 };
 
 const newSession = () => {
 	const url = new URL(window.location.href);
 	url.search = "";
 	window.location.href = url.toString();
-};
-
-/** Tauri 파일 열기 → 내용을 에이전트 메시지로 주입 */
-const handleOpenFile = async () => {
-	if (!isTauri()) return;
-
-	const path = await openFileDialog({
-		title: "파일 열기",
-		filters: [
-			{ name: "텍스트 파일", extensions: ["txt", "md", "json", "csv", "xml", "yaml", "yml"] },
-			{ name: "코드", extensions: ["ts", "js", "py", "rs", "go", "java", "c", "cpp", "h"] },
-			{ name: "모든 파일", extensions: ["*"] },
-		],
-	});
-
-	if (!path || Array.isArray(path)) return;
-
-	try {
-		const content = await readFileText(path);
-		const filename = path.split(/[/\\]/).pop() || path;
-		agent.steer(createSystemNotification(`📄 파일 열림: ${filename} (${content.length} chars)`));
-		agent.steer({
-			role: "user",
-			content: `다음 파일의 내용을 분석해주세요.\n\n**파일:** ${filename}\n\`\`\`\n${content}\n\`\`\``,
-			timestamp: Date.now(),
-		});
-	} catch (err) {
-		console.error("Failed to read file:", err);
-	}
 };
 
 // ============================================================================
@@ -302,17 +231,6 @@ const renderApp = () => {
 					onClick: newSession,
 					title: "New Session",
 				})}
-          ${
-					isTauri()
-						? Button({
-								variant: "ghost",
-								size: "sm",
-								children: icon(FolderOpen, "sm"),
-								onClick: handleOpenFile,
-								title: "파일 열기",
-							})
-						: ""
-				}
           ${
 					currentTitle
 						? isEditingTitle

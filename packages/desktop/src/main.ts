@@ -65,6 +65,7 @@ setAppStorage(storage);
 
 let currentSessionId: string | undefined;
 let currentTitle = "";
+let prevTitle = "";
 let isEditingTitle = false;
 let agent: Agent;
 let chatPanel: ChatPanel;
@@ -183,7 +184,12 @@ Feel free to use these tools when needed to provide accurate and helpful respons
 			if (currentSessionId) {
 				saveSession();
 			}
-			renderApp();
+			// Only re-render header when title changes, not on every state update.
+			// ChatPanel handles its own message rendering internally.
+			if (currentTitle !== prevTitle) {
+				prevTitle = currentTitle;
+				renderApp();
+			}
 		}
 	});
 

@@ -1,6 +1,12 @@
+/*
+ * Copyright 2025 Hancom Inc. All rights reserved.
+ *
+ * https://www.hancom.com/
+ */
+
 import { streamSimple, type ToolResultMessage, type Usage } from "@mariozechner/pi-ai";
 import { html, LitElement } from "lit";
-import { customElement, property, query } from "lit/decorators.js";
+import { customElement, property, query, state } from "lit/decorators.js";
 import { ModelSelector } from "../dialogs/ModelSelector.js";
 import type { MessageEditor } from "./MessageEditor.js";
 import "./MessageEditor.js";
@@ -34,6 +40,9 @@ export class AgentInterface extends LitElement {
 	@property({ attribute: false }) onCostClick?: () => void;
 	// Optional callback to override model selector behavior
 	@property({ attribute: false }) onModelSelect?: () => void;
+
+	// Force Lit re-render when agent state changes (isStreaming, messages, etc.)
+	@state() private _renderTick = 0;
 
 	// References
 	@query("message-editor") private _messageEditor!: MessageEditor;
@@ -155,8 +164,13 @@ export class AgentInterface extends LitElement {
 				case "message_start":
 				case "turn_start":
 				case "turn_end":
+					this._renderTick++;
+					break;
 				case "agent_start":
-					this.requestUpdate();
+					if (this._messageEditor) {
+						this._messageEditor.isStreaming = true;
+					}
+					this._renderTick++;
 					break;
 				case "message_end":
 					// Clear streaming container when a message completes
@@ -164,7 +178,7 @@ export class AgentInterface extends LitElement {
 					if (this._streamingContainer) {
 						this._streamingContainer.setMessage(null, true);
 					}
-					this.requestUpdate();
+					this._renderTick++;
 					break;
 				case "agent_end":
 					// Clear streaming container when agent finishes
@@ -172,7 +186,11 @@ export class AgentInterface extends LitElement {
 						this._streamingContainer.isStreaming = false;
 						this._streamingContainer.setMessage(null, true);
 					}
-					this.requestUpdate();
+					// Directly sync isStreaming to message editor (Lit binding may not propagate)
+					if (this._messageEditor) {
+						this._messageEditor.isStreaming = false;
+					}
+					this._renderTick++;
 					break;
 				case "message_update":
 					if (this._streamingContainer) {
@@ -180,7 +198,7 @@ export class AgentInterface extends LitElement {
 						this._streamingContainer.isStreaming = isStreaming;
 						this._streamingContainer.setMessage(ev.message, !isStreaming);
 					}
-					this.requestUpdate();
+					this._renderTick++;
 					break;
 			}
 		});
@@ -276,7 +294,7 @@ export class AgentInterface extends LitElement {
 			<div class="flex flex-col gap-3">
 				<!-- Stable messages list - won't re-render during streaming -->
 				<message-list
-					.messages=${this.session.state.messages}
+					.messages=${[...this.session.state.messages]}
 					.tools=${state.tools}
 					.pendingToolCalls=${this.session ? this.session.state.pendingToolCalls : new Set<string>()}
 					.isStreaming=${state.isStreaming}

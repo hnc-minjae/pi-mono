@@ -49,7 +49,15 @@ interface McpStdioServerConfig {
 
 type McpServerConfig = McpHttpServerConfig | McpStdioServerConfig;
 
-const HAN_HWPX_MCP_PATH = join(homedir(), "dev", "harness", "han-ax", "han-hwpx-mcp");
+// @hancom/hwp-cli 패키지의 번들된 MCP 서버 경로
+function resolveHwpMcpServer(): string {
+	try {
+		return require.resolve("@hancom/hwp-cli/dist/mcp-stdio-server.mjs");
+	} catch {
+		// fallback: node_modules에서 직접 탐색
+		return join(process.cwd(), "node_modules", "@hancom", "hwp-cli", "dist", "mcp-stdio-server.mjs");
+	}
+}
 
 const MCP_SERVERS: McpServerConfig[] = [
 	{
@@ -63,9 +71,8 @@ const MCP_SERVERS: McpServerConfig[] = [
 		type: "stdio",
 		key: "hwp-cowriter-file",
 		name: "HWP Cowriter (File)",
-		command: "npx",
-		args: ["tsx", join(HAN_HWPX_MCP_PATH, "src", "mcp-stdio-server.ts"), "--service", "cowriter:file"],
-		cwd: HAN_HWPX_MCP_PATH,
+		command: "node",
+		args: [resolveHwpMcpServer(), "--service", "cowriter:file"],
 		prefix: "mcp__hwp_file",
 	},
 ];

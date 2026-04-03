@@ -11,10 +11,10 @@ import { WebSocketServer, WebSocket } from "ws";
 const WS_PORT = parseInt(process.env.WS_PORT || "3001", 10);
 
 // Path to the coding-agent CLI
-const CLI_PATH = resolve(import.meta.dirname, "../../../coding-agent/dist/cli.js");
+const CLI_PATH = resolve(import.meta.dirname, "../../coding-agent/dist/cli.js");
 
 // Working directory for the agent (project root)
-const AGENT_CWD = resolve(import.meta.dirname, "../../..");
+const AGENT_CWD = resolve(import.meta.dirname, "../..");
 
 interface BridgeState {
 	rpcProcess: ChildProcess | null;

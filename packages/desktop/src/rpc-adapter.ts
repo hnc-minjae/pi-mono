@@ -39,6 +39,9 @@ export class RpcAgent {
 		pendingToolCalls: new Set<string>(),
 	};
 
+	/** API key provider — always returns dummy key since RPC agent manages keys server-side */
+	getApiKey: ((provider: string) => Promise<string | undefined>) | null = async () => "rpc-managed";
+
 	constructor(private wsUrl: string) {}
 
 	get state(): AgentState {
@@ -47,6 +50,31 @@ export class RpcAgent {
 
 	get isRunning(): boolean {
 		return this._state.isStreaming;
+	}
+
+	/** Called by AgentInterface.sendMessage() to send a user message */
+	async prompt(message: string | AgentMessage) {
+		const text =
+			typeof message === "string"
+				? message
+				: typeof message.content === "string"
+					? message.content
+					: (message.content as any[])
+							?.filter((c: any) => c.type === "text")
+							.map((c: any) => c.text)
+							.join("") || "";
+
+		if (!text) return;
+
+		// Add user message to local state
+		const userMsg: AgentMessage = typeof message === "string"
+			? { role: "user", content: [{ type: "text", text: message }], timestamp: Date.now() }
+			: message;
+		this._state.messages = [...this._state.messages, userMsg];
+
+		this._state.isStreaming = true;
+		this.emitEvent({ type: "agent_start" });
+		this.send({ type: "prompt", message: text });
 	}
 
 	async connect(): Promise<void> {

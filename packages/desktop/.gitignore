@@ -1,0 +1,8 @@
+# Rust build artifacts
+src-tauri/target/
+# Generated schemas
+src-tauri/gen/
+# Vite build
+dist/
+# Placeholder icon
+app-icon.png

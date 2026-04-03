@@ -1,3 +1,9 @@
+/*
+ * Copyright 2025 Hancom Inc. All rights reserved.
+ *
+ * https://www.hancom.com/
+ */
+
 import { i18n } from "@mariozechner/mini-lit";
 import { Badge } from "@mariozechner/mini-lit/dist/Badge.js";
 import { Button } from "@mariozechner/mini-lit/dist/Button.js";
@@ -10,15 +16,10 @@ import { Input } from "./Input.js";
 
 // Test models for each provider
 const TEST_MODELS: Record<string, string> = {
-	anthropic: "claude-haiku-4-5",
-	openai: "gpt-4o-mini",
-	google: "gemini-2.5-flash",
-	groq: "openai/gpt-oss-20b",
-	openrouter: "z-ai/glm-4.6",
-	"vercel-ai-gateway": "anthropic/claude-opus-4.5",
-	cerebras: "gpt-oss-120b",
-	xai: "grok-4-fast-non-reasoning",
-	zai: "glm-4.5-air",
+	anthropic: "claude-sonnet-4-6",
+	openai: "gpt-5-chat-latest",
+	google: "gemini-3.1-flash-lite-preview",
+	xai: "grok-code-fast-1",
 };
 
 @customElement("provider-key-input")

@@ -4,8 +4,6 @@
  * https://www.hancom.com/
  */
 
-@import "tailwindcss";
-@import "@mariozechner/mini-lit/dist/themes/default.css";
 @import "@mariozechner/pi-web-ui/app.css";
 
 /* Tauri 데스크탑 앱용 스타일 */

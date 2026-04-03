@@ -12,9 +12,15 @@
  */
 
 import { createServer, type Server } from "node:http";
+import { randomBytes, createHash } from "node:crypto";
 import { URL } from "node:url";
 import { exec } from "node:child_process";
 import type { OAuthClientProvider } from "@modelcontextprotocol/sdk/client/auth.js";
+import {
+	discoverOAuthMetadata,
+	registerClient,
+	fetchToken,
+} from "@modelcontextprotocol/sdk/client/auth.js";
 import type {
 	OAuthClientMetadata,
 	OAuthClientInformationMixed,
@@ -86,23 +92,10 @@ export class McpOAuthProvider implements OAuthClientProvider {
 		console.log(`[mcp-oauth] Tokens saved for ${this.serverKey}`);
 	}
 
-	async redirectToAuthorization(authorizationUrl: URL): Promise<void> {
-		console.log(`[mcp-oauth] Opening browser for authorization...`);
-		console.log(`[mcp-oauth] URL: ${authorizationUrl.toString()}`);
-
-		// 콜백 서버 시작
-		await this.startCallbackServer();
-
-		// 브라우저 열기
-		const url = authorizationUrl.toString();
-		const platform = process.platform;
-		if (platform === "darwin") {
-			exec(`open "${url}"`);
-		} else if (platform === "win32") {
-			exec(`start "${url}"`);
-		} else {
-			exec(`xdg-open "${url}"`);
-		}
+	async redirectToAuthorization(_authorizationUrl: URL): Promise<void> {
+		// SDK가 호출하지만, 브라우저는 waitForAuthentication()에서 직접 연다.
+		// 여기서 열면 2개 탭이 열리므로 no-op으로 둔다.
+		console.log("[mcp-oauth] SDK requested redirect (handled by waitForAuthentication)");
 	}
 
 	async saveCodeVerifier(verifier: string): Promise<void> {
@@ -166,6 +159,97 @@ export class McpOAuthProvider implements OAuthClientProvider {
 			this.callbackServer.close();
 			this.callbackServer = null;
 			console.log("[mcp-oauth] Callback server stopped");
+		}
+	}
+
+	/**
+	 * OAuth 플로우를 직접 실행하고 토큰 획득까지 대기한다.
+	 * 1. OAuth Discovery로 서버 메타데이터 조회
+	 * 2. Dynamic Client Registration (필요 시)
+	 * 3. PKCE code_verifier/challenge 생성
+	 * 4. 인증 URL 생성 → 브라우저 열기
+	 * 5. 콜백 서버에서 authorization code 수신 대기
+	 * 6. code → token 교환
+	 */
+	async waitForAuthentication(serverUrl: string): Promise<boolean> {
+		const TIMEOUT = 120000; // 2분 대기
+
+		try {
+			// 1. OAuth Discovery
+			const resourceUrl = new URL(serverUrl);
+			const metadata = await discoverOAuthMetadata(resourceUrl);
+			if (!metadata) {
+				console.error("[mcp-oauth] OAuth metadata discovery failed");
+				return false;
+			}
+			console.log("[mcp-oauth] OAuth metadata discovered:", metadata.authorization_endpoint);
+
+			// 2. Client Registration (없으면 등록)
+			let clientInfo = await this.clientInformation();
+			if (!clientInfo) {
+				console.log("[mcp-oauth] Registering OAuth client...");
+				const registered = await registerClient(
+					metadata.authorization_endpoint,
+					{ metadata, clientMetadata: this.clientMetadata },
+				);
+				clientInfo = registered;
+				await this.saveClientInformation(registered);
+				console.log("[mcp-oauth] Client registered:", registered.client_id);
+			}
+
+			// 3. PKCE
+			const verifier = randomBytes(32).toString("base64url");
+			await this.saveCodeVerifier(verifier);
+			const challenge = createHash("sha256").update(verifier).digest("base64url");
+
+			// 4. Build authorization URL
+			const authUrl = new URL(metadata.authorization_endpoint.toString());
+			authUrl.searchParams.set("response_type", "code");
+			authUrl.searchParams.set("client_id", clientInfo.client_id);
+			authUrl.searchParams.set("redirect_uri", this.redirectUrl);
+			authUrl.searchParams.set("code_challenge", challenge);
+			authUrl.searchParams.set("code_challenge_method", "S256");
+
+			// 5. Start callback server and open browser
+			const codePromise = new Promise<string | null>((resolve) => {
+				this.authResolve = (code) => resolve(code);
+				setTimeout(() => resolve(null), TIMEOUT);
+			});
+
+			await this.startCallbackServer();
+
+			console.log("[mcp-oauth] Opening browser for authentication...");
+			const url = authUrl.toString();
+			const platform = process.platform;
+			if (platform === "darwin") exec(`open "${url}"`);
+			else if (platform === "win32") exec(`start "${url}"`);
+			else exec(`xdg-open "${url}"`);
+
+			// 6. Wait for authorization code
+			console.log("[mcp-oauth] Waiting for browser authentication (up to 2 minutes)...");
+			const code = await codePromise;
+
+			if (!code) {
+				console.error("[mcp-oauth] Authentication timed out or was cancelled");
+				this.stopCallbackServer();
+				return false;
+			}
+
+			console.log("[mcp-oauth] Authorization code received, exchanging for token...");
+
+			// 7. Exchange code for tokens
+			const tokens = await fetchToken(this, metadata.authorization_endpoint.toString(), {
+				metadata,
+				authorizationCode: code,
+			});
+
+			await this.saveTokens(tokens);
+			console.log("[mcp-oauth] Authentication complete!");
+			return true;
+		} catch (err: any) {
+			console.error("[mcp-oauth] Authentication failed:", err?.message || err);
+			this.stopCallbackServer();
+			return false;
 		}
 	}
 }

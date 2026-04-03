@@ -146,26 +146,38 @@ function registerMcpTool(
 async function connectWithOAuth(config: McpServerConfig): Promise<Client | null> {
 	const authProvider = new McpOAuthProvider(config.key);
 
+	// 1차 시도: 기존 토큰으로 연결
 	try {
 		const transport = new StreamableHTTPClientTransport(new URL(config.url), {
 			authProvider,
 		});
-
-		const client = new Client({
-			name: "han-ai-orchestrator",
-			version: "1.0.0",
-		});
-
+		const client = new Client({ name: "han-ai-orchestrator", version: "1.0.0" });
 		await client.connect(transport);
+		console.log(`[mcp-bridge] ${config.name}: 기존 토큰으로 연결 성공!`);
+		return client;
+	} catch {
+		// 토큰 없거나 만료 — OAuth 플로우 진행
+	}
+
+	// OAuth 플로우: 브라우저 인증 후 토큰 획득까지 대기
+	console.log(`[mcp-bridge] ${config.name}: OAuth 인증이 필요합니다. 브라우저에서 인증을 완료해 주세요...`);
+	const authenticated = await authProvider.waitForAuthentication(config.url);
+	if (!authenticated) {
+		console.error(`[mcp-bridge] ${config.name}: 인증 실패 또는 시간 초과`);
+		return null;
+	}
+
+	// 2차 시도: 새 토큰으로 연결
+	try {
+		const transport = new StreamableHTTPClientTransport(new URL(config.url), {
+			authProvider,
+		});
+		const client = new Client({ name: "han-ai-orchestrator", version: "1.0.0" });
+		await client.connect(transport);
+		console.log(`[mcp-bridge] ${config.name}: OAuth 인증 후 연결 성공!`);
 		return client;
 	} catch (err: any) {
-		// OAuth 플로우가 필요한 경우 (UnauthorizedError 등)
-		if (err?.message?.includes("Unauthorized") || err?.code === 401) {
-			console.log(`[mcp-bridge] ${config.name}: OAuth 인증이 필요합니다. 브라우저가 열립니다.`);
-			// MCP SDK가 자동으로 OAuth 플로우를 트리거함
-			// authProvider.redirectToAuthorization()이 호출됨
-		}
-		console.error(`[mcp-bridge] Failed to connect to ${config.name}:`, err?.message || err);
+		console.error(`[mcp-bridge] ${config.name}: 인증 후에도 연결 실패:`, err?.message);
 		return null;
 	}
 }

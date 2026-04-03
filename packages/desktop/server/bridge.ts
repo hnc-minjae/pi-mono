@@ -89,8 +89,12 @@ function sendToRpc(json: string) {
 const TOKEN_FILE = join(homedir(), ".config", "han", "mcp-tokens.json");
 
 function getMcpStatus(): { servers: Array<{ key: string; name: string; connected: boolean; expiresAt?: number }> } {
+	// stdio 서버는 토큰 없이 항상 연결 가능
+	const stdioServers = new Set(["hwp-cowriter-file"]);
+
 	const servers = [
-		{ key: "atlassian", name: "Atlassian", url: "https://mcp.atlassian.com/v1/mcp" },
+		{ key: "atlassian", name: "Atlassian (Jira/Confluence)" },
+		{ key: "hwp-cowriter-file", name: "HWP Cowriter (File)" },
 	];
 
 	let tokens: Record<string, any> = {};
@@ -102,6 +106,9 @@ function getMcpStatus(): { servers: Array<{ key: string; name: string; connected
 
 	return {
 		servers: servers.map((s) => {
+			if (stdioServers.has(s.key)) {
+				return { key: s.key, name: s.name, connected: true };
+			}
 			const token = tokens[s.key];
 			const hasToken = !!token?.accessToken;
 			const expiresAt = token?.expiresAt;

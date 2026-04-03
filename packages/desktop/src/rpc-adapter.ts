@@ -84,7 +84,10 @@ export class RpcAgent {
 						}
 						resolve();
 					})
-					.catch(reject);
+					.catch((err) => {
+						console.warn("[rpc-adapter] get_state failed, continuing anyway:", err?.message);
+						resolve(); // 실패해도 앱은 로드
+					});
 			};
 
 			this.ws.onmessage = (event) => {
@@ -105,6 +108,16 @@ export class RpcAgent {
 	disconnect() {
 		this.ws?.close();
 		this.ws = null;
+	}
+
+	/** MCP 서버 상태 조회 (bridge 서버가 직접 처리) */
+	async getMcpStatus(): Promise<any> {
+		return this.sendCommand({ type: "mcp_status" });
+	}
+
+	/** MCP 서버 연결 시작 (OAuth 플로우 트리거) */
+	mcpConnect(serverKey: string) {
+		this.send({ type: "mcp_connect", server: serverKey });
 	}
 
 	subscribe(listener: (event: any, signal: AbortSignal) => void | Promise<void>): () => void {
@@ -195,7 +208,8 @@ export class RpcAgent {
 			return;
 		}
 
-		if (data.type === "response" && data.id && this.pendingRequests.has(data.id)) {
+		// Response matching: RPC responses (type: "response") and bridge responses (type: "mcp_status_response")
+		if (data.id && this.pendingRequests.has(data.id)) {
 			const pending = this.pendingRequests.get(data.id)!;
 			this.pendingRequests.delete(data.id);
 			pending.resolve(data);

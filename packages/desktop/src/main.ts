@@ -295,7 +295,11 @@ const renderApp = () => {
 					variant: "ghost",
 					size: "sm",
 					children: icon(Settings, "sm"),
-					onClick: () => SettingsDialog.open([new ProvidersModelsTab(), new ProxyTab(), new McpSettingsTab()]),
+					onClick: () => {
+							const mcpTab = new McpSettingsTab();
+							mcpTab.setAgent(agent);
+							SettingsDialog.open([new ProvidersModelsTab(), new ProxyTab(), mcpTab]);
+						},
 					title: "Settings",
 				})}
         </div>

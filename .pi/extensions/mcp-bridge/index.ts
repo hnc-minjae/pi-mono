@@ -23,23 +23,50 @@ import { Type } from "@mariozechner/pi-ai";
 import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
+import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
 import { McpOAuthProvider } from "./oauth-provider.js";
 
 // --- MCP Server Config ---
 
-interface McpServerConfig {
+interface McpHttpServerConfig {
+	type: "http";
 	key: string;
 	name: string;
 	url: string;
 	prefix: string;
 }
 
+interface McpStdioServerConfig {
+	type: "stdio";
+	key: string;
+	name: string;
+	command: string;
+	args: string[];
+	cwd?: string;
+	env?: Record<string, string>;
+	prefix: string;
+}
+
+type McpServerConfig = McpHttpServerConfig | McpStdioServerConfig;
+
+const HAN_HWPX_MCP_PATH = join(homedir(), "dev", "harness", "han-ax", "han-hwpx-mcp");
+
 const MCP_SERVERS: McpServerConfig[] = [
 	{
+		type: "http",
 		key: "atlassian",
 		name: "Atlassian",
 		url: "https://mcp.atlassian.com/v1/mcp",
 		prefix: "mcp__atlassian",
+	},
+	{
+		type: "stdio",
+		key: "hwp-cowriter-file",
+		name: "HWP Cowriter (File)",
+		command: "npx",
+		args: ["tsx", join(HAN_HWPX_MCP_PATH, "src", "mcp-stdio-server.ts"), "--service", "cowriter:file"],
+		cwd: HAN_HWPX_MCP_PATH,
+		prefix: "mcp__hwp_file",
 	},
 ];
 
@@ -144,25 +171,23 @@ function registerMcpTool(
 	});
 }
 
-// --- MCP Connection with OAuth ---
+// --- MCP Connection ---
 
-async function connectWithOAuth(config: McpServerConfig): Promise<Client | null> {
+async function connectHttpServer(config: McpHttpServerConfig): Promise<Client | null> {
 	const authProvider = new McpOAuthProvider(config.key);
 
 	// 1차 시도: 기존 토큰으로 연결
 	try {
-		const transport = new StreamableHTTPClientTransport(new URL(config.url), {
-			authProvider,
-		});
+		const transport = new StreamableHTTPClientTransport(new URL(config.url), { authProvider });
 		const client = new Client({ name: "han-ai-orchestrator", version: "1.0.0" });
 		await client.connect(transport);
 		console.log(`[mcp-bridge] ${config.name}: 기존 토큰으로 연결 성공!`);
 		return client;
 	} catch {
-		// 토큰 없거나 만료 — OAuth 플로우 진행
+		// 토큰 없거나 만료
 	}
 
-	// OAuth 플로우: 브라우저 인증 후 토큰 획득까지 대기
+	// OAuth 플로우
 	console.log(`[mcp-bridge] ${config.name}: OAuth 인증이 필요합니다. 브라우저에서 인증을 완료해 주세요...`);
 	const authenticated = await authProvider.waitForAuthentication(config.url);
 	if (!authenticated) {
@@ -170,11 +195,8 @@ async function connectWithOAuth(config: McpServerConfig): Promise<Client | null>
 		return null;
 	}
 
-	// 2차 시도: 새 토큰으로 연결
 	try {
-		const transport = new StreamableHTTPClientTransport(new URL(config.url), {
-			authProvider,
-		});
+		const transport = new StreamableHTTPClientTransport(new URL(config.url), { authProvider });
 		const client = new Client({ name: "han-ai-orchestrator", version: "1.0.0" });
 		await client.connect(transport);
 		console.log(`[mcp-bridge] ${config.name}: OAuth 인증 후 연결 성공!`);
@@ -183,6 +205,32 @@ async function connectWithOAuth(config: McpServerConfig): Promise<Client | null>
 		console.error(`[mcp-bridge] ${config.name}: 인증 후에도 연결 실패:`, err?.message);
 		return null;
 	}
+}
+
+async function connectStdioServer(config: McpStdioServerConfig): Promise<Client | null> {
+	try {
+		const transport = new StdioClientTransport({
+			command: config.command,
+			args: config.args,
+			cwd: config.cwd,
+			env: { ...process.env, ...(config.env || {}) } as Record<string, string>,
+			stderr: "pipe",
+		});
+
+		const client = new Client({ name: "han-ai-orchestrator", version: "1.0.0" });
+		await client.connect(transport);
+		console.log(`[mcp-bridge] ${config.name}: stdio 연결 성공!`);
+		return client;
+	} catch (err: any) {
+		console.error(`[mcp-bridge] ${config.name}: stdio 연결 실패:`, err?.message);
+		return null;
+	}
+}
+
+async function connectServer(config: McpServerConfig): Promise<Client | null> {
+	if (config.type === "http") return connectHttpServer(config);
+	if (config.type === "stdio") return connectStdioServer(config);
+	return null;
 }
 
 // --- Extension Entry ---
@@ -197,7 +245,7 @@ export default async function mcpBridgeExtension(pi: ExtensionAPI) {
 			for (const config of MCP_SERVERS) {
 				ctx.ui.notify(`[mcp-bridge] ${config.name} 연결 시도...`, "info");
 
-				const client = await connectWithOAuth(config);
+				const client = await connectServer(config);
 				if (!client) {
 					ctx.ui.notify(`[mcp-bridge] ${config.name} 연결 실패`, "warning");
 					continue;
@@ -228,9 +276,9 @@ export default async function mcpBridgeExtension(pi: ExtensionAPI) {
 	// session_start 이벤트에서 도구 등록 (bindCore() 이후이므로 refreshTools()가 동작)
 	pi.on("session_start", async () => {
 		for (const config of MCP_SERVERS) {
-			console.log(`[mcp-bridge] Connecting to ${config.name} (${config.url})...`);
+			console.log(`[mcp-bridge] Connecting to ${config.name}...`);
 
-			const client = await connectWithOAuth(config);
+			const client = await connectServer(config);
 			if (!client) {
 				console.log(`[mcp-bridge] ${config.name}: 자동 연결 실패. /mcp-connect 로 수동 연결하세요.`);
 				continue;

@@ -308,6 +308,31 @@ export default async function mcpBridgeExtension(pi: ExtensionAPI) {
 		}
 	});
 
+	// 자연어 → 문서 스킬 자동 트리거
+	pi.on("input", async (event: any) => {
+		if (event.source === "extension") return { action: "continue" };
+		const text = event.text?.trim() || "";
+
+		const docTriggers: Array<{ pattern: RegExp; skill: string; argGroup?: number }> = [
+			{ pattern: /(?:공문|안내문|공문서)(?:을|를)?\s*(?:작성|생성|만들)/, skill: "han-doc-memo" },
+			{ pattern: /(?:계획서)(?:를|을)?\s*(?:작성|생성|만들)/, skill: "han-doc-plan" },
+			{ pattern: /(?:기획서|기획안)(?:를|을)?\s*(?:작성|생성|만들)/, skill: "han-doc-draft" },
+			{ pattern: /(?:사업보고서|보고서)(?:를|을)?\s*(?:작성|생성|만들)/, skill: "han-doc-report" },
+		];
+
+		for (const trigger of docTriggers) {
+			if (trigger.pattern.test(text)) {
+				// 주제 추출: "~에 대한", "~에 관한", "~주제로" 앞의 내용
+				const topicMatch = text.match(/(.+?)(?:에\s*(?:대한|관한|대해)|주제로|으로)\s/);
+				const topic = topicMatch ? topicMatch[1].trim() : "";
+				const skillCmd = topic ? `/skill:${trigger.skill} ${topic}` : `/skill:${trigger.skill}`;
+				return { action: "transform", text: skillCmd };
+			}
+		}
+
+		return { action: "continue" };
+	});
+
 	// 매 턴마다 han-config.md 내용을 시스템 프롬프트에 주입
 	pi.on("before_agent_start", async () => {
 		try {

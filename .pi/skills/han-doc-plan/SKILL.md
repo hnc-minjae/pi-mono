@@ -41,7 +41,7 @@ argument: "[주제] — 예: /han-doc-plan AI 사업 추진 계획"
 `mcp__hwp_file__hwp_file_open_document` 도구로 계획서 템플릿을 연다.
 
 ```
-mcp__hwp_file__hwp_file_open_document(filePath: "문서/계획서.hwpx")
+mcp__hwp_file__hwp_file_open_document(filePath: "han-doc/templates/계획서.hwpx")
 ```
 
 ## Step 3: 누름틀별 내용 생성 및 채우기
@@ -68,7 +68,7 @@ mcp__hwp_file__hwp_file_open_document(filePath: "문서/계획서.hwpx")
 
 각 누름틀 채우기:
 ```
-mcp__hwp_file__hwp_file_fill_click_field(fieldName: "계획서_제목", text: "{생성된 내용}")
+mcp__hwp_file__hwp_file_fill_click_field(fieldName: "계획서_제목", value: "{생성된 내용}")
 ```
 
 ## Step 4: 문서 저장
@@ -78,4 +78,4 @@ mcp__hwp_file__hwp_file_save_document()
 ```
 
 완료 메시지:
-> "계획서가 생성되었습니다. 문서/계획서.hwpx 파일을 확인하세요."
+> "계획서가 생성되었습니다. han-doc/templates/계획서.hwpx 파일을 확인하세요."

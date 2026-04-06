@@ -151,10 +151,16 @@ export class RpcAgent {
 	}
 
 	async setModel(provider: string, modelId: string) {
-		const response = await this.sendCommand({ type: "set_model", provider, modelId });
-		if (response.success && response.data) {
-			this._state.model = response.data as any;
-			this.emitEvent({ type: "state-update", state: this._state });
+		try {
+			const response = await this.sendCommand({ type: "set_model", provider, modelId });
+			if (response.success && response.data) {
+				this._state.model = response.data as any;
+				this.emitEvent({ type: "state-update", state: this._state });
+			} else {
+				console.warn("[rpc-adapter] setModel failed:", response.error);
+			}
+		} catch (err) {
+			console.error("[rpc-adapter] setModel error:", err);
 		}
 	}
 

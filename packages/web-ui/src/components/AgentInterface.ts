@@ -200,6 +200,12 @@ export class AgentInterface extends LitElement {
 					}
 					this._renderTick++;
 					break;
+				default:
+					// Handle RPC-specific events (e.g., "state-update") that trigger UI refresh
+					if ((ev as any).type === "state-update") {
+						this._renderTick++;
+					}
+					break;
 			}
 		});
 	}
@@ -397,8 +403,11 @@ export class AgentInterface extends LitElement {
 								if (this.onModelSelect) {
 									this.onModelSelect();
 								} else {
-									ModelSelector.open(state.model, (model) => {
+									ModelSelector.open(state.model, async (model) => {
 										session.state.model = model;
+										if ("setModel" in session && typeof (session as any).setModel === "function") {
+											await (session as any).setModel(model.provider, model.id);
+										}
 									});
 								}
 							}}
@@ -406,6 +415,9 @@ export class AgentInterface extends LitElement {
 								this.enableThinkingSelector
 									? (level: "off" | "minimal" | "low" | "medium" | "high") => {
 											session.state.thinkingLevel = level;
+											if ("setThinkingLevel" in session && typeof (session as any).setThinkingLevel === "function") {
+												(session as any).setThinkingLevel(level);
+											}
 										}
 									: undefined
 							}

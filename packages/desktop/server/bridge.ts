@@ -33,12 +33,9 @@ const state: BridgeState = {
 function spawnRpcAgent(): ChildProcess {
 	const args = ["--mode", "rpc"];
 
-	if (process.env.RPC_PROVIDER) {
-		args.push("--provider", process.env.RPC_PROVIDER);
-	}
-	if (process.env.RPC_MODEL) {
-		args.push("--model", process.env.RPC_MODEL);
-	}
+	const provider = process.env.RPC_PROVIDER || "openai";
+	const model = process.env.RPC_MODEL || "gpt-5.4";
+	args.push("--provider", provider, "--model", model);
 
 	const child = spawn("node", [CLI_PATH, ...args], {
 		cwd: AGENT_CWD,
@@ -143,6 +140,13 @@ function handleMcpCommand(ws: WebSocket, data: any): boolean {
 export function startBridge() {
 	state.rpcProcess = spawnRpcAgent();
 	setupRpcStdoutReader(state.rpcProcess);
+
+	// RPC 초기화 후 thinking level 설정
+	const thinkingLevel = process.env.RPC_THINKING_LEVEL || "medium";
+	setTimeout(() => {
+		sendToRpc(JSON.stringify({ type: "set_thinking_level", level: thinkingLevel }));
+		console.log(`[bridge] Thinking level set to: ${thinkingLevel}`);
+	}, 3000);
 
 	const wss = new WebSocketServer({ port: WS_PORT });
 	console.log(`[bridge] WebSocket server listening on ws://localhost:${WS_PORT}`);

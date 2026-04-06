@@ -11,6 +11,7 @@ import {
 	ChatPanel,
 	CustomProvidersStore,
 	IndexedDBStorageBackend,
+	ModelSelector,
 	ProviderKeysStore,
 	ProvidersModelsTab,
 	ProxyTab,
@@ -18,7 +19,7 @@ import {
 	SessionsStore,
 	SettingsDialog,
 	SettingsStore,
-	SettingsTab,
+	type SettingsTab,
 	setAppStorage,
 } from "@mariozechner/pi-web-ui";
 import { html, render } from "lit";
@@ -179,6 +180,11 @@ const createAgent = async () => {
 	await chatPanel.setAgent(agent as any, {
 		// RPC 에이전트가 서버 측에서 API 키를 관리하므로 항상 통과
 		onApiKeyRequired: async () => true,
+		onModelSelect: () => {
+			ModelSelector.open(agent.state.model, async (model) => {
+				await agent.setModel(model.provider, model.id);
+			});
+		},
 		toolsFactory: () => [],
 	});
 };
@@ -296,9 +302,9 @@ const renderApp = () => {
 					size: "sm",
 					children: icon(Settings, "sm"),
 					onClick: () => {
-							const mcpTab = createMcpTab(agent);
-							SettingsDialog.open([new ProvidersModelsTab(), new ProxyTab(), mcpTab]);
-						},
+						const mcpTab = createMcpTab(agent);
+						SettingsDialog.open([new ProvidersModelsTab(), new ProxyTab(), mcpTab]);
+					},
 					title: "Settings",
 				})}
         </div>
@@ -382,17 +388,23 @@ function createMcpTab(rpcAgent: RpcAgent): SettingsTab {
 								<div>
 									<div class="flex items-center gap-2">
 										<span class="font-medium text-foreground">${s.name}</span>
-										${s.connected
-											? html`<span class="text-xs px-2 py-0.5 bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300 rounded-full">연결됨</span>`
-											: html`<span class="text-xs px-2 py-0.5 bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300 rounded-full">미연결</span>`}
+										${
+											s.connected
+												? html`<span class="text-xs px-2 py-0.5 bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300 rounded-full">연결됨</span>`
+												: html`<span class="text-xs px-2 py-0.5 bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300 rounded-full">미연결</span>`
+										}
 									</div>
-									${s.connected && s.expiresAt
-										? html`<div class="text-xs text-muted-foreground mt-1">토큰 만료: ${formatExpiry(s.expiresAt)}</div>`
-										: ""}
+									${
+										s.connected && s.expiresAt
+											? html`<div class="text-xs text-muted-foreground mt-1">토큰 만료: ${formatExpiry(s.expiresAt)}</div>`
+											: ""
+									}
 								</div>
-								${s.connected
-									? html`<button class="text-sm px-3 py-1 rounded border border-border hover:bg-secondary" @click=${() => connectMcp(s.key)}>재연결</button>`
-									: html`<button class="text-sm px-3 py-1 rounded bg-primary text-primary-foreground hover:bg-primary/90" @click=${() => connectMcp(s.key)}>연결</button>`}
+								${
+									s.connected
+										? html`<button class="text-sm px-3 py-1 rounded border border-border hover:bg-secondary" @click=${() => connectMcp(s.key)}>재연결</button>`
+										: html`<button class="text-sm px-3 py-1 rounded bg-primary text-primary-foreground hover:bg-primary/90" @click=${() => connectMcp(s.key)}>연결</button>`
+								}
 							</div>
 						`,
 						)}

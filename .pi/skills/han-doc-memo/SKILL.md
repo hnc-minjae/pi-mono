@@ -42,6 +42,10 @@ mcp__hwp_file__hwp_file_open_document(filePath: "han-doc/templates/공문.hwpx")
 
 ## Step 3: 누름틀별 내용 생성 및 채우기
 
+> **⚠️ 필수**: 누름틀 내용 채우기에는 반드시 `mcp__hwp_file__hwp_file_fill_click_field` 도구만 사용한다.
+> `set_cell`, `replace_text`, `insert_paragraph` 등 다른 도구로 누름틀을 채우지 않는다.
+> `get_vdoc`, `get_outline`으로 문서 구조를 탐색할 필요 없이, 아래 누름틀 이름으로 바로 채운다.
+
 각 누름틀에 대해 순차적으로:
 1. 누름틀의 용도에 맞는 내용을 생성
 2. `mcp__hwp_file__hwp_file_fill_click_field` 도구로 누름틀에 채움

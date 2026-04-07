@@ -34,7 +34,7 @@ pi-*.html
 out.html
 packages/coding-agent/binaries/
 todo.md
-plans/
+/plans/
 
 # han-ax harness
 .pi/.env

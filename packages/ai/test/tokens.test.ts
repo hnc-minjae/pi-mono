@@ -1,9 +1,3 @@
-/*
- * Copyright 2025 Hancom Inc. All rights reserved.
- *
- * https://www.hancom.com/
- */
-
 import { describe, expect, it } from "vitest";
 import { getModel } from "../src/models.js";
 import { stream } from "../src/stream.js";
@@ -149,28 +143,52 @@ describe("Token Statistics on Abort", () => {
 		});
 	});
 
-	describe.skip("Groq Provider (provider removed from models)", () => {
-		it.skip("should include token stats when aborted mid-stream", () => {});
+	describe.skipIf(!process.env.GROQ_API_KEY)("Groq Provider", () => {
+		const llm = getModel("openrouter", "openai/gpt-oss-20b");
+
+		it("should include token stats when aborted mid-stream", { retry: 3, timeout: 30000 }, async () => {
+			await testTokensOnAbort(llm);
+		});
 	});
 
-	describe.skip("Cerebras Provider (provider removed from models)", () => {
-		it.skip("should include token stats when aborted mid-stream", () => {});
+	describe.skipIf(!process.env.CEREBRAS_API_KEY)("Cerebras Provider", () => {
+		const llm = getModel("openrouter", "qwen/qwen3-32b");
+
+		it("should include token stats when aborted mid-stream", { retry: 3, timeout: 30000 }, async () => {
+			await testTokensOnAbort(llm);
+		});
 	});
 
-	describe.skip("Hugging Face Provider (provider removed from models)", () => {
-		it.skip("should include token stats when aborted mid-stream", () => {});
+	describe.skipIf(!process.env.HF_TOKEN)("Hugging Face Provider", () => {
+		const llm = getModel("openrouter", "google/gemini-2.5-flash");
+
+		it("should include token stats when aborted mid-stream", { retry: 3, timeout: 30000 }, async () => {
+			await testTokensOnAbort(llm);
+		});
 	});
 
-	describe.skip("zAI Provider (provider removed from models)", () => {
-		it.skip("should include token stats when aborted mid-stream", () => {});
+	describe.skipIf(!process.env.ZAI_API_KEY)("zAI Provider", () => {
+		const llm = getModel("openrouter", "z-ai/glm-5");
+
+		it("should include token stats when aborted mid-stream", { retry: 3, timeout: 30000 }, async () => {
+			await testTokensOnAbort(llm);
+		});
 	});
 
-	describe.skip("Mistral Provider (provider removed from models)", () => {
-		it.skip("should include token stats when aborted mid-stream", () => {});
+	describe.skipIf(!process.env.MISTRAL_API_KEY)("Mistral Provider", () => {
+		const llm = getModel("openrouter", "google/gemini-2.5-flash");
+
+		it("should include token stats when aborted mid-stream", { retry: 3, timeout: 30000 }, async () => {
+			await testTokensOnAbort(llm);
+		});
 	});
 
-	describe.skip("MiniMax Provider (provider removed from models)", () => {
-		it.skip("should include token stats when aborted mid-stream", () => {});
+	describe.skipIf(!process.env.MINIMAX_API_KEY)("MiniMax Provider", () => {
+		const llm = getModel("openrouter", "google/gemini-2.5-flash");
+
+		it("should include token stats when aborted mid-stream", { retry: 3, timeout: 30000 }, async () => {
+			await testTokensOnAbort(llm);
+		});
 	});
 
 	describe.skipIf(!process.env.KIMI_API_KEY)("Kimi For Coding Provider", () => {
@@ -181,8 +199,12 @@ describe("Token Statistics on Abort", () => {
 		});
 	});
 
-	describe.skip("Vercel AI Gateway Provider (provider removed from models)", () => {
-		it.skip("should include token stats when aborted mid-stream", () => {});
+	describe.skipIf(!process.env.AI_GATEWAY_API_KEY)("Vercel AI Gateway Provider", () => {
+		const llm = getModel("openrouter", "google/gemini-2.5-flash");
+
+		it("should include token stats when aborted mid-stream", { retry: 3, timeout: 30000 }, async () => {
+			await testTokensOnAbort(llm);
+		});
 	});
 
 	// =========================================================================
@@ -201,8 +223,24 @@ describe("Token Statistics on Abort", () => {
 		);
 	});
 
-	describe.skip("GitHub Copilot Provider (provider removed from models)", () => {
-		it.skip("should include token stats when aborted mid-stream", () => {});
+	describe("GitHub Copilot Provider", () => {
+		it.skipIf(!githubCopilotToken)(
+			"gpt-4o - should include token stats when aborted mid-stream",
+			{ retry: 3, timeout: 30000 },
+			async () => {
+				const llm = getModel("openai", "gpt-5-chat-latest");
+				await testTokensOnAbort(llm, { apiKey: githubCopilotToken });
+			},
+		);
+
+		it.skipIf(!githubCopilotToken)(
+			"claude-sonnet-4 - should include token stats when aborted mid-stream",
+			{ retry: 3, timeout: 30000 },
+			async () => {
+				const llm = getModel("anthropic", "claude-sonnet-4-6");
+				await testTokensOnAbort(llm, { apiKey: githubCopilotToken });
+			},
+		);
 	});
 
 	describe("Google Gemini CLI Provider", () => {

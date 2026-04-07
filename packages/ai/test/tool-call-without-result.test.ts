@@ -98,7 +98,7 @@ describe("Tool Call Without Result Tests", () => {
 	// =========================================================================
 
 	describe.skipIf(!process.env.GEMINI_API_KEY)("Google Provider", () => {
-		const model = getModel("google", "gemini-2.5-flash");
+		const model = getModel("google", "gemini-3.1-flash-lite-preview");
 
 		it("should filter out tool calls without corresponding tool results", { retry: 3, timeout: 30000 }, async () => {
 			await testToolCallWithoutResult(model);
@@ -106,7 +106,7 @@ describe("Tool Call Without Result Tests", () => {
 	});
 
 	describe.skipIf(!process.env.OPENAI_API_KEY)("OpenAI Completions Provider", () => {
-		const { compat: _compat, ...baseModel } = getModel("openai", "gpt-4o-mini")!;
+		const { compat: _compat, ...baseModel } = getModel("openai", "gpt-5-chat-latest")!;
 		void _compat;
 		const model: Model<"openai-completions"> = {
 			...baseModel,
@@ -119,7 +119,7 @@ describe("Tool Call Without Result Tests", () => {
 	});
 
 	describe.skipIf(!process.env.OPENAI_API_KEY)("OpenAI Responses Provider", () => {
-		const model = getModel("openai", "gpt-5-mini");
+		const model = getModel("openai", "gpt-5-chat-latest");
 
 		it("should filter out tool calls without corresponding tool results", { retry: 3, timeout: 30000 }, async () => {
 			await testToolCallWithoutResult(model);
@@ -127,7 +127,7 @@ describe("Tool Call Without Result Tests", () => {
 	});
 
 	describe.skipIf(!hasAzureOpenAICredentials())("Azure OpenAI Responses Provider", () => {
-		const model = getModel("azure-openai-responses", "gpt-4o-mini");
+		const model = getModel("azure-openai-responses", "gpt-5-chat-latest");
 		const azureDeploymentName = resolveAzureDeploymentName(model.id);
 		const azureOptions = azureDeploymentName ? { azureDeploymentName } : {};
 
@@ -137,7 +137,7 @@ describe("Tool Call Without Result Tests", () => {
 	});
 
 	describe.skipIf(!process.env.ANTHROPIC_API_KEY)("Anthropic Provider", () => {
-		const model = getModel("anthropic", "claude-3-5-haiku-20241022");
+		const model = getModel("anthropic", "claude-sonnet-4-6");
 
 		it("should filter out tool calls without corresponding tool results", { retry: 3, timeout: 30000 }, async () => {
 			await testToolCallWithoutResult(model);
@@ -145,7 +145,7 @@ describe("Tool Call Without Result Tests", () => {
 	});
 
 	describe.skipIf(!process.env.XAI_API_KEY)("xAI Provider", () => {
-		const model = getModel("xai", "grok-3-fast");
+		const model = getModel("xai", "grok-code-fast-1");
 
 		it("should filter out tool calls without corresponding tool results", { retry: 3, timeout: 30000 }, async () => {
 			await testToolCallWithoutResult(model);
@@ -153,7 +153,7 @@ describe("Tool Call Without Result Tests", () => {
 	});
 
 	describe.skipIf(!process.env.GROQ_API_KEY)("Groq Provider", () => {
-		const model = getModel("groq", "openai/gpt-oss-20b");
+		const model = getModel("openrouter", "openai/gpt-oss-20b");
 
 		it("should filter out tool calls without corresponding tool results", { retry: 3, timeout: 30000 }, async () => {
 			await testToolCallWithoutResult(model);
@@ -161,7 +161,7 @@ describe("Tool Call Without Result Tests", () => {
 	});
 
 	describe.skipIf(!process.env.CEREBRAS_API_KEY)("Cerebras Provider", () => {
-		const model = getModel("cerebras", "gpt-oss-120b");
+		const model = getModel("openrouter", "openai/gpt-oss-120b");
 
 		it("should filter out tool calls without corresponding tool results", { retry: 3, timeout: 30000 }, async () => {
 			await testToolCallWithoutResult(model);
@@ -169,7 +169,7 @@ describe("Tool Call Without Result Tests", () => {
 	});
 
 	describe.skipIf(!process.env.HF_TOKEN)("Hugging Face Provider", () => {
-		const model = getModel("huggingface", "moonshotai/Kimi-K2.5");
+		const model = getModel("openrouter", "google/gemini-2.5-flash");
 
 		it("should filter out tool calls without corresponding tool results", { retry: 3, timeout: 30000 }, async () => {
 			await testToolCallWithoutResult(model);
@@ -177,7 +177,7 @@ describe("Tool Call Without Result Tests", () => {
 	});
 
 	describe.skipIf(!process.env.ZAI_API_KEY)("zAI Provider", () => {
-		const model = getModel("zai", "glm-4.5-flash");
+		const model = getModel("openrouter", "z-ai/glm-5");
 
 		it("should filter out tool calls without corresponding tool results", { retry: 3, timeout: 30000 }, async () => {
 			await testToolCallWithoutResult(model);
@@ -185,7 +185,7 @@ describe("Tool Call Without Result Tests", () => {
 	});
 
 	describe.skipIf(!process.env.MISTRAL_API_KEY)("Mistral Provider", () => {
-		const model = getModel("mistral", "devstral-medium-latest");
+		const model = getModel("openrouter", "google/gemini-2.5-flash");
 
 		it("should filter out tool calls without corresponding tool results", { retry: 3, timeout: 30000 }, async () => {
 			await testToolCallWithoutResult(model);
@@ -193,7 +193,7 @@ describe("Tool Call Without Result Tests", () => {
 	});
 
 	describe.skipIf(!process.env.MINIMAX_API_KEY)("MiniMax Provider", () => {
-		const model = getModel("minimax", "MiniMax-M2.7");
+		const model = getModel("openrouter", "google/gemini-2.5-flash");
 
 		it("should filter out tool calls without corresponding tool results", { retry: 3, timeout: 30000 }, async () => {
 			await testToolCallWithoutResult(model);
@@ -209,7 +209,7 @@ describe("Tool Call Without Result Tests", () => {
 	});
 
 	describe.skipIf(!process.env.AI_GATEWAY_API_KEY)("Vercel AI Gateway Provider", () => {
-		const model = getModel("vercel-ai-gateway", "google/gemini-2.5-flash");
+		const model = getModel("openrouter", "google/gemini-2.5-flash");
 
 		it("should filter out tool calls without corresponding tool results", { retry: 3, timeout: 30000 }, async () => {
 			await testToolCallWithoutResult(model);
@@ -217,7 +217,7 @@ describe("Tool Call Without Result Tests", () => {
 	});
 
 	describe.skipIf(!hasBedrockCredentials())("Amazon Bedrock Provider", () => {
-		const model = getModel("amazon-bedrock", "global.anthropic.claude-sonnet-4-5-20250929-v1:0");
+		const model = getModel("amazon-bedrock", "eu.anthropic.claude-opus-4-6-v1");
 
 		it("should filter out tool calls without corresponding tool results", { retry: 3, timeout: 30000 }, async () => {
 			await testToolCallWithoutResult(model);
@@ -229,7 +229,7 @@ describe("Tool Call Without Result Tests", () => {
 	// =========================================================================
 
 	describe("Anthropic OAuth Provider", () => {
-		const model = getModel("anthropic", "claude-3-5-haiku-20241022");
+		const model = getModel("anthropic", "claude-sonnet-4-6");
 
 		it.skipIf(!anthropicOAuthToken)(
 			"should filter out tool calls without corresponding tool results",
@@ -245,7 +245,7 @@ describe("Tool Call Without Result Tests", () => {
 			"gpt-4o - should filter out tool calls without corresponding tool results",
 			{ retry: 3, timeout: 30000 },
 			async () => {
-				const model = getModel("github-copilot", "gpt-4o");
+				const model = getModel("openai", "gpt-5-chat-latest");
 				await testToolCallWithoutResult(model, { apiKey: githubCopilotToken });
 			},
 		);
@@ -254,7 +254,7 @@ describe("Tool Call Without Result Tests", () => {
 			"claude-sonnet-4 - should filter out tool calls without corresponding tool results",
 			{ retry: 3, timeout: 30000 },
 			async () => {
-				const model = getModel("github-copilot", "claude-sonnet-4");
+				const model = getModel("anthropic", "claude-sonnet-4-6");
 				await testToolCallWithoutResult(model, { apiKey: githubCopilotToken });
 			},
 		);

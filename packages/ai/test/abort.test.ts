@@ -1,9 +1,3 @@
-/*
- * Copyright 2025 Hancom Inc. All rights reserved.
- *
- * https://www.hancom.com/
- */
-
 import { describe, expect, it } from "vitest";
 import { getModel } from "../src/models.js";
 import { complete, stream } from "../src/stream.js";
@@ -138,7 +132,7 @@ describe("AI Providers Abort Tests", () => {
 	});
 
 	describe.skipIf(!process.env.OPENAI_API_KEY)("OpenAI Responses Provider Abort", () => {
-		const llm = getModel("openai", "gpt-5.4");
+		const llm = getModel("openai", "gpt-5-chat-latest");
 
 		it("should abort mid-stream", { retry: 3 }, async () => {
 			await testAbortSignal(llm);
@@ -175,14 +169,28 @@ describe("AI Providers Abort Tests", () => {
 		});
 	});
 
-	describe.skip("Mistral Provider Abort (provider removed from models)", () => {
-		it.skip("should abort mid-stream", () => {});
-		it.skip("should handle immediate abort", () => {});
+	describe.skipIf(!process.env.MISTRAL_API_KEY)("Mistral Provider Abort", () => {
+		const llm = getModel("openrouter", "google/gemini-2.5-flash");
+
+		it("should abort mid-stream", { retry: 3 }, async () => {
+			await testAbortSignal(llm);
+		});
+
+		it("should handle immediate abort", { retry: 3 }, async () => {
+			await testImmediateAbort(llm);
+		});
 	});
 
-	describe.skip("MiniMax Provider Abort (provider removed from models)", () => {
-		it.skip("should abort mid-stream", () => {});
-		it.skip("should handle immediate abort", () => {});
+	describe.skipIf(!process.env.MINIMAX_API_KEY)("MiniMax Provider Abort", () => {
+		const llm = getModel("openrouter", "google/gemini-2.5-flash");
+
+		it("should abort mid-stream", { retry: 3 }, async () => {
+			await testAbortSignal(llm);
+		});
+
+		it("should handle immediate abort", { retry: 3 }, async () => {
+			await testImmediateAbort(llm);
+		});
 	});
 
 	describe.skipIf(!process.env.KIMI_API_KEY)("Kimi For Coding Provider Abort", () => {
@@ -197,9 +205,16 @@ describe("AI Providers Abort Tests", () => {
 		});
 	});
 
-	describe.skip("Vercel AI Gateway Provider Abort (provider removed from models)", () => {
-		it.skip("should abort mid-stream", () => {});
-		it.skip("should handle immediate abort", () => {});
+	describe.skipIf(!process.env.AI_GATEWAY_API_KEY)("Vercel AI Gateway Provider Abort", () => {
+		const llm = getModel("openrouter", "google/gemini-2.5-flash");
+
+		it("should abort mid-stream", { retry: 3 }, async () => {
+			await testAbortSignal(llm);
+		});
+
+		it("should handle immediate abort", { retry: 3 }, async () => {
+			await testImmediateAbort(llm);
+		});
 	});
 
 	// Google Gemini CLI / Antigravity share the same provider, so one test covers both

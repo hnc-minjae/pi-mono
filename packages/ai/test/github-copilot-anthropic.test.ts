@@ -49,7 +49,7 @@ describe("Copilot Claude via Anthropic Messages", () => {
 	};
 
 	it("uses Bearer auth, Copilot headers, and valid Anthropic Messages payload", async () => {
-		const model = getModel("github-copilot", "claude-sonnet-4");
+		const model = getModel("anthropic", "claude-sonnet-4-6");
 		expect(model.api).toBe("anthropic-messages");
 
 		const { streamAnthropic } = await import("../src/providers/anthropic.js");
@@ -87,7 +87,7 @@ describe("Copilot Claude via Anthropic Messages", () => {
 	});
 
 	it("includes interleaved-thinking beta when reasoning is enabled", async () => {
-		const model = getModel("github-copilot", "claude-sonnet-4");
+		const model = getModel("anthropic", "claude-sonnet-4-6");
 		const { streamAnthropic } = await import("../src/providers/anthropic.js");
 		const s = streamAnthropic(model, context, {
 			apiKey: "tid_copilot_session_test_token",

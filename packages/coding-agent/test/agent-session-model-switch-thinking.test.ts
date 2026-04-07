@@ -8,8 +8,8 @@ import { SessionManager } from "../src/core/session-manager.js";
 import { SettingsManager } from "../src/core/settings-manager.js";
 import { createTestResourceLoader } from "./utilities.js";
 
-const reasoningModel = getModel("anthropic", "claude-sonnet-4-5")!;
-const nonReasoningModel = getModel("anthropic", "claude-3-5-haiku-latest")!;
+const reasoningModel = getModel("anthropic", "claude-sonnet-4-6")!;
+const nonReasoningModel = getModel("anthropic", "claude-sonnet-4-6")!;
 
 function createSession({
 	thinkingLevel = "high",

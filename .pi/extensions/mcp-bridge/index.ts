@@ -180,6 +180,22 @@ function registerMcpTool(
 
 // --- MCP Connection ---
 
+/** 기존 토큰으로만 연결 시도 — OAuth 플로우 없음 */
+async function connectHttpServerWithToken(config: McpHttpServerConfig): Promise<Client | null> {
+	const authProvider = new McpOAuthProvider(config.key);
+	try {
+		const transport = new StreamableHTTPClientTransport(new URL(config.url), { authProvider });
+		const client = new Client({ name: "han-ai-orchestrator", version: "1.0.0" });
+		await client.connect(transport);
+		console.log(`[mcp-bridge] ${config.name}: 기존 토큰으로 연결 성공!`);
+		return client;
+	} catch {
+		console.log(`[mcp-bridge] ${config.name}: 토큰 없음 또는 만료. /mcp-connect 로 인증하세요.`);
+		return null;
+	}
+}
+
+/** OAuth 플로우 포함 전체 연결 — 수동 /mcp-connect 용 */
 async function connectHttpServer(config: McpHttpServerConfig): Promise<Client | null> {
 	const authProvider = new McpOAuthProvider(config.key);
 
@@ -234,8 +250,16 @@ async function connectStdioServer(config: McpStdioServerConfig): Promise<Client 
 	}
 }
 
+/** OAuth 플로우 포함 — /mcp-connect 수동 명령 전용 */
 async function connectServer(config: McpServerConfig): Promise<Client | null> {
 	if (config.type === "http") return connectHttpServer(config);
+	if (config.type === "stdio") return connectStdioServer(config);
+	return null;
+}
+
+/** 토큰만 사용 — session_start 자동 연결 전용 */
+async function connectServerWithToken(config: McpServerConfig): Promise<Client | null> {
+	if (config.type === "http") return connectHttpServerWithToken(config);
 	if (config.type === "stdio") return connectStdioServer(config);
 	return null;
 }
@@ -280,12 +304,12 @@ export default async function mcpBridgeExtension(pi: ExtensionAPI) {
 		},
 	});
 
-	// session_start 이벤트에서 도구 등록 (bindCore() 이후이므로 refreshTools()가 동작)
+	// session_start 이벤트에서 도구 등록 — 기존 토큰만 사용, OAuth 블로킹 없음
 	pi.on("session_start", async () => {
 		for (const config of MCP_SERVERS) {
 			console.log(`[mcp-bridge] Connecting to ${config.name}...`);
 
-			const client = await connectServer(config);
+			const client = await connectServerWithToken(config);
 			if (!client) {
 				console.log(`[mcp-bridge] ${config.name}: 자동 연결 실패. /mcp-connect 로 수동 연결하세요.`);
 				continue;

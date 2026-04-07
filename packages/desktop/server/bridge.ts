@@ -41,6 +41,7 @@ function spawnRpcAgent(): ChildProcess {
 		cwd: AGENT_CWD,
 		env: process.env,
 		stdio: ["pipe", "pipe", "pipe"],
+		windowsHide: true,
 	});
 
 	console.log(`[bridge] RPC agent spawned (pid: ${child.pid})`);
@@ -149,6 +150,15 @@ export function startBridge() {
 	}, 3000);
 
 	const wss = new WebSocketServer({ port: WS_PORT });
+	wss.on("error", (err: NodeJS.ErrnoException) => {
+		if (err.code === "EADDRINUSE") {
+			console.log(`[bridge] Port ${WS_PORT} already in use — another bridge server is running. Exiting.`);
+			state.rpcProcess?.kill("SIGTERM");
+			process.exit(0);
+		} else {
+			console.error("[bridge] WebSocket server error:", err.message);
+		}
+	});
 	console.log(`[bridge] WebSocket server listening on ws://localhost:${WS_PORT}`);
 
 	wss.on("connection", (ws) => {

@@ -57,7 +57,7 @@ describe.skipIf(!HAS_ANTIGRAVITY_AUTH)("Compaction with thinking models (Antigra
 	});
 
 	function createSession(
-		modelId: "claude-opus-4-5-thinking" | "claude-sonnet-4-5",
+		modelId: "claude-opus-4-5-thinking" | "claude-sonnet-4-6",
 		thinkingLevel: ThinkingLevel = "high",
 	) {
 		const model = getModel("google-antigravity", modelId);
@@ -125,7 +125,7 @@ describe.skipIf(!HAS_ANTIGRAVITY_AUTH)("Compaction with thinking models (Antigra
 	}, 180000);
 
 	it("should compact successfully with claude-sonnet-4-5 (non-thinking) for comparison", async () => {
-		createSession("claude-sonnet-4-5", "off");
+		createSession("claude-sonnet-4-6", "off");
 
 		await session.prompt("Write down the first 10 prime numbers.");
 		await session.agent.waitForIdle();
@@ -194,7 +194,7 @@ describe.skipIf(!HAS_ANTHROPIC_AUTH)("Compaction with thinking models (Anthropic
 	}
 
 	it("should compact successfully with claude-sonnet-4-5 and thinking level high", async () => {
-		const model = getModel("anthropic", "claude-sonnet-4-5")!;
+		const model = getModel("anthropic", "claude-sonnet-4-6")!;
 		createSession(model, "high");
 
 		// Send a simple prompt

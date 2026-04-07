@@ -79,36 +79,51 @@ export class RpcAgent {
 		this.send({ type: "prompt", message: text });
 	}
 
-	async connect(): Promise<void> {
-		return new Promise((resolve, reject) => {
-			this.ws = new WebSocket(this.wsUrl);
+	async connect(retries = 20, delayMs = 500): Promise<void> {
+		for (let i = 0; i < retries; i++) {
+			try {
+				await this.tryConnect();
+				return;
+			} catch {
+				if (i < retries - 1) {
+					await new Promise((r) => setTimeout(r, delayMs));
+				}
+			}
+		}
+		throw new Error(`Failed to connect to bridge server after ${retries} attempts`);
+	}
 
-			this.ws.onopen = () => {
+	private tryConnect(): Promise<void> {
+		return new Promise((resolve, reject) => {
+			const ws = new WebSocket(this.wsUrl);
+
+			ws.onopen = () => {
+				this.ws = ws;
 				console.log("[rpc-adapter] Connected to bridge server");
 				this.sendCommand({ type: "get_state" })
 					.then((response: any) => {
 						if (response.success && response.data) {
 							this.updateStateFromRpc(response.data);
+							this.emitEvent({ type: "state-update", state: this._state });
 						}
 						resolve();
 					})
 					.catch((err) => {
 						console.warn("[rpc-adapter] get_state failed, continuing anyway:", err?.message);
-						resolve(); // 실패해도 앱은 로드
+						resolve();
 					});
 			};
 
-			this.ws.onmessage = (event) => {
+			ws.onmessage = (event) => {
 				this.handleMessage(event.data as string);
 			};
 
-			this.ws.onclose = () => {
+			ws.onclose = () => {
 				console.log("[rpc-adapter] Disconnected from bridge server");
 			};
 
-			this.ws.onerror = (err) => {
-				console.error("[rpc-adapter] WebSocket error:", err);
-				reject(err);
+			ws.onerror = () => {
+				reject(new Error("WebSocket connection failed"));
 			};
 		});
 	}
@@ -156,6 +171,14 @@ export class RpcAgent {
 
 	abort() {
 		this.send({ type: "abort" });
+	}
+
+	async setApiKey(provider: string, apiKey: string) {
+		try {
+			await this.sendCommand({ type: "set_api_key", provider, apiKey });
+		} catch (err) {
+			console.error("[rpc-adapter] setApiKey error:", err);
+		}
 	}
 
 	async setModel(provider: string, modelId: string) {
@@ -219,6 +242,7 @@ export class RpcAgent {
 		try {
 			data = JSON.parse(raw);
 		} catch {
+			console.warn("[rpc-adapter] JSON parse failed:", raw.substring(0, 100));
 			return;
 		}
 
@@ -235,6 +259,13 @@ export class RpcAgent {
 
 	private handleAgentEvent(event: any) {
 		switch (event.type) {
+			case "response":
+				// RPC error response (e.g. missing API key) — surface as console error
+				if (event.success === false && event.error) {
+					console.error(`[rpc-adapter] RPC error (${event.command}):`, event.error);
+				}
+				return; // Don't emit response events to UI subscribers
+
 			case "agent_start":
 				this._state.isStreaming = true;
 				break;

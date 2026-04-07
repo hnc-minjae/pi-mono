@@ -415,7 +415,10 @@ export class AgentInterface extends LitElement {
 								this.enableThinkingSelector
 									? (level: "off" | "minimal" | "low" | "medium" | "high") => {
 											session.state.thinkingLevel = level;
-											if ("setThinkingLevel" in session && typeof (session as any).setThinkingLevel === "function") {
+											if (
+												"setThinkingLevel" in session &&
+												typeof (session as any).setThinkingLevel === "function"
+											) {
 												(session as any).setThinkingLevel(level);
 											}
 										}

@@ -1,3 +1,9 @@
+/*
+ * Copyright 2025 Hancom Inc. All rights reserved.
+ *
+ * https://www.hancom.com/
+ */
+
 import type { ToolResultMessage } from "@mariozechner/pi-ai";
 import "./javascript-repl.js"; // Auto-registers the renderer
 import "./extract-document.js"; // Auto-registers the renderer
@@ -40,7 +46,7 @@ export function renderTool(
 	if (renderer) {
 		return renderer.render(params, result, isStreaming);
 	}
-	return defaultRenderer.render(params, result, isStreaming);
+	return defaultRenderer.render(params, result, isStreaming, toolName);
 }
 
 export { getToolRenderer, registerToolRenderer };

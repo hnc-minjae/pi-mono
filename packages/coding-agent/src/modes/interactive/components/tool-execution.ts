@@ -1,3 +1,9 @@
+/*
+ * Copyright 2025 Hancom Inc. All rights reserved.
+ *
+ * https://www.hancom.com/
+ */
+
 import { Box, type Component, Container, getCapabilities, Image, Spacer, Text, type TUI } from "@mariozechner/pi-tui";
 import type { ToolDefinition, ToolRenderContext } from "../../../core/extensions/types.js";
 import { allToolDefinitions } from "../../../core/tools/index.js";
@@ -222,15 +228,15 @@ export class ToolExecutionComponent extends Container {
 				this.contentBox.addChild(this.createCallFallback());
 				hasContent = true;
 			} else {
+				this.contentBox.addChild(new Text(theme.fg("toolTitle", `[${this.toolName}]`), 0, 0));
+				hasContent = true;
 				try {
 					const component = callRenderer(this.args, theme, this.getRenderContext(this.callRendererComponent));
 					this.callRendererComponent = component;
 					this.contentBox.addChild(component);
-					hasContent = true;
 				} catch {
 					this.callRendererComponent = undefined;
 					this.contentBox.addChild(this.createCallFallback());
-					hasContent = true;
 				}
 			}
 

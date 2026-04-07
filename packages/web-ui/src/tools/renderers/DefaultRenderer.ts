@@ -1,3 +1,9 @@
+/*
+ * Copyright 2025 Hancom Inc. All rights reserved.
+ *
+ * https://www.hancom.com/
+ */
+
 import type { ToolResultMessage } from "@mariozechner/pi-ai";
 import { html } from "lit";
 import { Code } from "lucide";
@@ -6,8 +12,14 @@ import { renderHeader } from "../renderer-registry.js";
 import type { ToolRenderer, ToolRenderResult } from "../types.js";
 
 export class DefaultRenderer implements ToolRenderer {
-	render(params: any | undefined, result: ToolResultMessage | undefined, isStreaming?: boolean): ToolRenderResult {
+	render(
+		params: any | undefined,
+		result: ToolResultMessage | undefined,
+		isStreaming?: boolean,
+		toolName?: string,
+	): ToolRenderResult {
 		const state = result ? (result.isError ? "error" : "complete") : isStreaming ? "inprogress" : "complete";
+		const label = toolName || "Tool Call";
 
 		// Format params as JSON
 		let paramsJson = "";
@@ -44,7 +56,7 @@ export class DefaultRenderer implements ToolRenderer {
 			return {
 				content: html`
 					<div class="space-y-3">
-						${renderHeader(state, Code, "Tool Call")}
+						${renderHeader(state, Code, label)}
 						${
 							paramsJson
 								? html`<div>
@@ -79,7 +91,7 @@ export class DefaultRenderer implements ToolRenderer {
 			return {
 				content: html`
 					<div class="space-y-3">
-						${renderHeader(state, Code, "Tool Call")}
+						${renderHeader(state, Code, label)}
 						<div>
 							<div class="text-xs font-medium mb-1 text-muted-foreground">${i18n("Input")}</div>
 							<code-block .code=${paramsJson} language="json"></code-block>

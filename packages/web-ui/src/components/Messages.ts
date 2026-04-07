@@ -1,3 +1,9 @@
+/*
+ * Copyright 2025 Hancom Inc. All rights reserved.
+ *
+ * https://www.hancom.com/
+ */
+
 import type {
 	AssistantMessage as AssistantMessageType,
 	ImageContent,
@@ -57,6 +63,37 @@ export class UserMessage extends LitElement {
 			typeof this.message.content === "string"
 				? this.message.content
 				: this.message.content.find((c) => c.type === "text")?.text || "";
+
+		// Skill block: render a centered pill badge (separate from user bubble) + the original user text
+		const skillMatch = content.match(/^<skill name="([^"]+)"/);
+		if (skillMatch) {
+			const skillName = skillMatch[1];
+			const descMatch = content.match(/^description:\s*(.+)$/m);
+			const description = descMatch ? descMatch[1].trim() : "";
+			const userMsgMatch = content.match(/<\/skill>\n\n([\s\S]+)$/);
+			const userMessage = userMsgMatch ? userMsgMatch[1].trim() : "";
+			// Truncate description to first sentence for compact display
+			const shortDesc = description ? description.split(/\.\s/)[0] : "";
+			return html`
+				<div class="flex justify-center mx-4 mb-2">
+					<div class="inline-flex items-center gap-2 text-xs rounded-full px-3 py-1.5 border text-muted-foreground bg-muted/40">
+						<span class="font-semibold text-foreground">[스킬] ${skillName}</span>
+						${shortDesc ? html`<span>— ${shortDesc}</span>` : ""}
+					</div>
+				</div>
+				${
+					userMessage
+						? html`
+						<div class="flex justify-start mx-4">
+							<div class="user-message-container py-2 px-4 rounded-xl">
+								<markdown-block .content=${userMessage}></markdown-block>
+							</div>
+						</div>
+					`
+						: ""
+				}
+			`;
+		}
 
 		return html`
 			<div class="flex justify-start mx-4">

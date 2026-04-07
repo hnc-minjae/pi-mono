@@ -1,3 +1,9 @@
+/*
+ * Copyright 2025 Hancom Inc. All rights reserved.
+ *
+ * https://www.hancom.com/
+ */
+
 import { Agent, type AgentEvent } from "@mariozechner/pi-agent-core";
 import { getModel, type ImageContent } from "@mariozechner/pi-ai";
 import {
@@ -24,7 +30,7 @@ import type { ChannelStore } from "./store.js";
 import { createMomTools, setUploadFunction } from "./tools/index.js";
 
 // Hardcoded model for now - TODO: make configurable (issue #63)
-const model = getModel("anthropic", "claude-sonnet-4-5");
+const model = getModel("anthropic", "claude-sonnet-4-6");
 
 export interface PendingMessage {
 	userName: string;

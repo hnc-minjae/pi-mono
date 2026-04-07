@@ -1,0 +1,37 @@
+# 의존성
+node_modules/
+
+# 빌드 산출물
+dist/
+packages/*/dist/
+packages/*/dist-chrome/
+packages/*/dist-firefox/
+*.tsbuildinfo
+
+# 바이너리
+.pi/bin/
+packages/coding-agent/binaries/
+
+# 생성된 문서 출력
+.pi/han-doc/output/
+문서/
+
+# 로그 및 프로파일
+*.log
+tui-debug.log
+*.cpuprofile
+
+# 테스트/커버리지
+coverage/
+.nyc_output/
+.playwright-mcp/
+
+# 런타임 상태
+.omc/
+compaction-results/
+
+# 생성된 데이터 파일
+syntax.jsonl
+out.jsonl
+pi-*.html
+out.html

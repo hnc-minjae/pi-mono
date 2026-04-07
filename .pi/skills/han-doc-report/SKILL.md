@@ -38,7 +38,7 @@ argument: "[주제] — 예: /han-doc-report 2025년 AI 사업 추진 실적"
 ## Step 2: HWPX 문서 열기
 
 ```
-mcp__hwp_file__hwp_file_open_document(filePath: "han-doc/templates/사업보고서.hwpx")
+mcp__hwp_file__hwp_file_open_document(filePath: ".pi/han-doc/templates/사업보고서.hwpx")
 ```
 
 ## Step 3: 누름틀별 내용 생성 및 채우기
@@ -67,9 +67,11 @@ mcp__hwp_file__hwp_file_fill_click_field(fieldName: "사업보고서_제목", va
 
 ## Step 4: 문서 저장
 
+topic을 기반으로 파일명을 생성한다 (공백→밑줄, 특수문자 제거).
+
 ```
-mcp__hwp_file__hwp_file_save_document()
+mcp__hwp_file__hwp_file_save_document(filePath: ".pi/han-doc/output/사업보고서_{topic_sanitized}.hwpx")
 ```
 
 완료 메시지:
-> "사업보고서가 생성되었습니다. han-doc/templates/사업보고서.hwpx 파일을 확인하세요."
+> "사업보고서가 생성되었습니다. .pi/han-doc/output/사업보고서_{topic_sanitized}.hwpx 파일을 확인하세요."

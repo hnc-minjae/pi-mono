@@ -38,5 +38,13 @@ plans/
 
 # han-ax harness
 .pi/.env
+.pi/bin/
+.pi/han-doc/output/
 .han/
 .omc/
+.omx/
+.playwright-mcp/
+
+# 임시 문서
+공지.hwpx
+문서/

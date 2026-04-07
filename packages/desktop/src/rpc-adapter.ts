@@ -29,6 +29,8 @@ export class RpcAgent {
 		}
 	>();
 
+	private _pendingUserMessages: any[] = [];
+
 	private _state: AgentState = {
 		systemPrompt: "",
 		model: null as any,
@@ -66,8 +68,14 @@ export class RpcAgent {
 
 		if (!text) return;
 
-		// Don't add user message locally — RPC will send message_start/message_end for it.
-		// Don't emit agent_start locally — RPC will send it.
+		// Add user message immediately so it appears in chat before the RPC responds.
+		// Track in _pendingUserMessages so agent_end can preserve original text
+		// instead of the server-transformed version (e.g. skill block).
+		const userMsg = { role: "user" as const, content: text, timestamp: Date.now() };
+		this._state.messages.push(userMsg);
+		this._pendingUserMessages.push(userMsg);
+		this.emitEvent({ type: "message_end", message: userMsg });
+
 		this.send({ type: "prompt", message: text });
 	}
 
@@ -240,6 +248,33 @@ export class RpcAgent {
 			case "message_end": {
 				const msg = event.message;
 				if (msg) {
+					// User messages are already added locally in prompt() — skip RPC version
+					// to prevent server-transformed content (e.g. skill blocks) from overwriting original text.
+					if (msg.role === "user" && this._pendingUserMessages.length > 0) {
+						// If server sent a skill-expanded message, extract skill metadata and update pending
+						// message to a compact format so the UI can show which skill was triggered.
+						if (typeof msg.content === "string" && msg.content.includes("<skill name=")) {
+							const skillMatch = msg.content.match(/<skill name="([^"]+)"/);
+							const descMatch = msg.content.match(/^description:\s*(.+)$/m);
+							const userMsgMatch = msg.content.match(/<\/skill>\n\n([\s\S]+)$/);
+							if (skillMatch) {
+								const skillName = skillMatch[1];
+								const description = descMatch ? descMatch[1].trim() : "";
+								const pendingMsg = this._pendingUserMessages[this._pendingUserMessages.length - 1];
+								const originalText = (userMsgMatch ? userMsgMatch[1] : pendingMsg.content).trim();
+								// Create new object (not mutation) so Lit detects the change and re-renders
+								const updatedMsg = {
+									...pendingMsg,
+									content: `<skill name="${skillName}">\ndescription: ${description}\n</skill>\n\n${originalText}`,
+								};
+								this._pendingUserMessages[this._pendingUserMessages.length - 1] = updatedMsg;
+								const stateIdx = this._state.messages.indexOf(pendingMsg);
+								if (stateIdx >= 0) this._state.messages[stateIdx] = updatedMsg;
+								this.emitEvent({ type: "message_end", message: updatedMsg });
+							}
+						}
+						break;
+					}
 					const lastMsg = this._state.messages[this._state.messages.length - 1];
 					if (lastMsg?.role === msg.role) {
 						this._state.messages[this._state.messages.length - 1] = msg;
@@ -252,9 +287,19 @@ export class RpcAgent {
 
 			case "agent_end":
 				this._state.isStreaming = false;
-				// Sync final messages from RPC agent
 				if (event.messages) {
-					this._state.messages = [...event.messages];
+					// Replace server messages but restore original user message text
+					const pending = [...this._pendingUserMessages];
+					this._pendingUserMessages = [];
+					let pendingIdx = 0;
+					this._state.messages = (event.messages as any[]).map((m: any) => {
+						if (m.role === "user" && pendingIdx < pending.length) {
+							return pending[pendingIdx++];
+						}
+						return m;
+					});
+				} else {
+					this._pendingUserMessages = [];
 				}
 				break;
 		}

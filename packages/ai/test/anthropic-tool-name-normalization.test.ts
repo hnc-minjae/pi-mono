@@ -1,3 +1,9 @@
+/*
+ * Copyright 2026 Hancom Inc. All rights reserved.
+ *
+ * https://www.hancom.com/
+ */
+
 import { Type } from "@sinclair/typebox";
 import { describe, expect, it } from "vitest";
 import { getModel } from "../src/models.js";
@@ -24,7 +30,7 @@ const oauthToken = await resolveApiKey("anthropic");
  * - Result: tool call has name "Glob" but no tool exists with that name
  */
 describe.skipIf(!oauthToken)("Anthropic OAuth tool name normalization", () => {
-	const model = getModel("anthropic", "claude-sonnet-4-20250514");
+	const model = getModel("anthropic", "claude-sonnet-4-6");
 
 	it("should normalize user-defined tool matching CC name (todowrite -> TodoWrite -> todowrite)", async () => {
 		// User defines a tool named "todowrite" (lowercase)

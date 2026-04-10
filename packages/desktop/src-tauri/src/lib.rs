@@ -158,9 +158,14 @@ fn start_bridge_server(app: &tauri::App) -> Option<Child> {
 
     cmd.arg(&server_script)
        .current_dir(&project_root)
-       .env("NODE_TLS_REJECT_UNAUTHORIZED", "0")
        .env("RPC_PROVIDER", std::env::var("RPC_PROVIDER").unwrap_or_default())
        .env("RPC_MODEL", std::env::var("RPC_MODEL").unwrap_or_default());
+
+    // 개발 환경에서만 TLS 인증서 검증 비활성화
+    #[cfg(debug_assertions)]
+    {
+        cmd.env("NODE_TLS_REJECT_UNAUTHORIZED", "0");
+    }
 
     // Windows: 콘솔 창 숨기기 (CREATE_NO_WINDOW)
     #[cfg(windows)]
@@ -210,6 +215,7 @@ pub fn run() {
             write_file,
         ])
         .setup(|app| {
+            #[cfg(debug_assertions)]
             {
                 let window = app.get_webview_window("main").unwrap();
                 window.open_devtools();

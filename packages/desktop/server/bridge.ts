@@ -88,11 +88,12 @@ const TOKEN_FILE = join(homedir(), ".config", "han", "mcp-tokens.json");
 
 function getMcpStatus(): { servers: Array<{ key: string; name: string; connected: boolean; expiresAt?: number }> } {
 	// stdio 서버는 토큰 없이 항상 연결 가능
-	const stdioServers = new Set(["hwp-cowriter-file"]);
+	const stdioServers = new Set(["hwp-cowriter-file", "hwp-cowriter-auto"]);
 
 	const servers = [
 		{ key: "atlassian", name: "Atlassian (Jira/Confluence)" },
 		{ key: "hwp-cowriter-file", name: "HWP Cowriter (File)" },
+		{ key: "hwp-cowriter-auto", name: "HWP Cowriter (Auto)" },
 	];
 
 	let tokens: Record<string, any> = {};

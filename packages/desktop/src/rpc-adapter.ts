@@ -100,18 +100,9 @@ export class RpcAgent {
 			ws.onopen = () => {
 				this.ws = ws;
 				console.log("[rpc-adapter] Connected to bridge server");
-				this.sendCommand({ type: "get_state" })
-					.then((response: any) => {
-						if (response.success && response.data) {
-							this.updateStateFromRpc(response.data);
-							this.emitEvent({ type: "state-update", state: this._state });
-						}
-						resolve();
-					})
-					.catch((err) => {
-						console.warn("[rpc-adapter] get_state failed, continuing anyway:", err?.message);
-						resolve();
-					});
+				// UI는 즉시 표시 — get_state는 백그라운드에서 폴링하여 RPC 준비 시 반영
+				resolve();
+				this.pollGetState();
 			};
 
 			ws.onmessage = (event) => {
@@ -126,6 +117,25 @@ export class RpcAgent {
 				reject(new Error("WebSocket connection failed"));
 			};
 		});
+	}
+
+	/** RPC 프로세스가 준비될 때까지 get_state를 3초 간격으로 폴링 (최대 60초) */
+	private async pollGetState() {
+		for (let i = 0; i < 20; i++) {
+			try {
+				const response = await this.sendCommand({ type: "get_state" });
+				if (response.success && response.data) {
+					this.updateStateFromRpc(response.data);
+					this.emitEvent({ type: "state-update", state: this._state });
+					console.log("[rpc-adapter] get_state synced");
+					return;
+				}
+			} catch {
+				// RPC not ready yet — retry
+			}
+			await new Promise((r) => setTimeout(r, 3000));
+		}
+		console.warn("[rpc-adapter] get_state polling exhausted");
 	}
 
 	disconnect() {

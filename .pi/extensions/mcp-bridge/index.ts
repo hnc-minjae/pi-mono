@@ -75,6 +75,14 @@ const MCP_SERVERS: McpServerConfig[] = [
 		args: [resolveHwpMcpServer(), "--service", "cowriter:file"],
 		prefix: "mcp__hwp_file",
 	},
+	{
+		type: "stdio",
+		key: "hwp-cowriter-auto",
+		name: "HWP Cowriter (Auto)",
+		command: "node",
+		args: [resolveHwpMcpServer(), "--service", "cowriter:auto"],
+		prefix: "mcp__hwp_auto",
+	},
 ];
 
 // --- Types ---

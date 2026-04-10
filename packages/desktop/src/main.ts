@@ -390,6 +390,7 @@ function createMcpTab(rpcAgent: RpcAgent): SettingsTab {
 	const servers = [
 		{ key: "atlassian", name: "Atlassian (Jira/Confluence)", connected: false, expiresAt: 0 },
 		{ key: "hwp-cowriter-file", name: "HWP Cowriter (File)", connected: false, expiresAt: 0 },
+		{ key: "hwp-cowriter-auto", name: "HWP Cowriter (Auto)", connected: false, expiresAt: 0 },
 	];
 
 	function renderMcpContent() {

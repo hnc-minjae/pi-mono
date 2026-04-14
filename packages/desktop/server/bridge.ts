@@ -12,11 +12,18 @@ import { WebSocketServer, WebSocket } from "ws";
 
 const WS_PORT = parseInt(process.env.WS_PORT || "3001", 10);
 
+// 릴리즈 모드: Tauri가 RESOURCE_DIR 환경변수를 전달
+const isRelease = !!process.env.RESOURCE_DIR;
+
 // Path to the coding-agent CLI
-const CLI_PATH = resolve(import.meta.dirname, "../../coding-agent/dist/cli.js");
+const CLI_PATH = isRelease
+	? resolve(process.env.RESOURCE_DIR!, "coding-agent", "cli.js")
+	: resolve(import.meta.dirname, "../../coding-agent/dist/cli.js");
 
 // Working directory for the agent (project root)
-const AGENT_CWD = resolve(import.meta.dirname, "../../..");
+const AGENT_CWD = isRelease
+	? resolve(process.env.RESOURCE_DIR!)
+	: resolve(import.meta.dirname, "../../..");
 
 interface BridgeState {
 	rpcProcess: ChildProcess | null;
@@ -122,8 +129,27 @@ function getMcpStatus(): { servers: Array<{ key: string; name: string; connected
 	};
 }
 
-function handleMcpCommand(ws: WebSocket, data: any): boolean {
+function handleBridgeCommand(ws: WebSocket, data: any): boolean {
 	switch (data.type) {
+		case "get_state": {
+			// Bridge가 직접 응답 — RPC 프로세스의 MCP 로딩 완료를 기다리지 않음.
+			// 모델 초기화는 MCP 연결보다 우선이므로 즉시 제공한다.
+			const provider = process.env.RPC_PROVIDER || "openai";
+			const modelId = process.env.RPC_MODEL || "gpt-5.4";
+			const thinkingLevel = process.env.RPC_THINKING_LEVEL || "medium";
+			ws.send(JSON.stringify({
+				type: "response",
+				id: data.id,
+				success: true,
+				command: "get_state",
+				data: {
+					model: { provider, id: modelId },
+					thinkingLevel,
+					isStreaming: false,
+				},
+			}));
+			return true;
+		}
 		case "mcp_status": {
 			const status = getMcpStatus();
 			ws.send(JSON.stringify({ type: "mcp_status_response", id: data.id, ...status }));
@@ -174,7 +200,7 @@ export function startBridge() {
 			const message = raw.toString();
 			try {
 				const parsed = JSON.parse(message);
-				if (handleMcpCommand(ws, parsed)) return;
+				if (handleBridgeCommand(ws, parsed)) return;
 			} catch {}
 			sendToRpc(message);
 		});

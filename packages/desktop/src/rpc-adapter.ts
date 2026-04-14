@@ -184,11 +184,8 @@ export class RpcAgent {
 	}
 
 	async setApiKey(provider: string, apiKey: string) {
-		try {
-			await this.sendCommand({ type: "set_api_key", provider, apiKey });
-		} catch (err) {
-			console.error("[rpc-adapter] setApiKey error:", err);
-		}
+		// Fire-and-forget — RPC 프로세스가 MCP 로딩 중이어도 stdin에 큐잉되어 준비 시 처리됨
+		this.send({ type: "set_api_key", provider, apiKey });
 	}
 
 	async setModel(provider: string, modelId: string) {

@@ -161,6 +161,12 @@ fn start_bridge_server(app: &tauri::App) -> Option<Child> {
        .env("RPC_PROVIDER", std::env::var("RPC_PROVIDER").unwrap_or_default())
        .env("RPC_MODEL", std::env::var("RPC_MODEL").unwrap_or_default());
 
+    // 릴리즈 모드에서 리소스 디렉토리 경로를 bridge 서버에 전달
+    #[cfg(not(debug_assertions))]
+    {
+        cmd.env("RESOURCE_DIR", &resource_dir);
+    }
+
     // 개발 환경에서만 TLS 인증서 검증 비활성화
     #[cfg(debug_assertions)]
     {

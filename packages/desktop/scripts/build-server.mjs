@@ -12,7 +12,7 @@
  */
 
 import { build } from "esbuild";
-import { cpSync, existsSync, mkdirSync } from "node:fs";
+import { cpSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -57,24 +57,36 @@ await build({
 	bundle: true,
 	platform: "node",
 	target: "node20",
-	format: "esm",
-	outfile: resolve(desktopRoot, "dist-server/coding-agent/cli.js"),
+	format: "cjs",
+	outfile: resolve(desktopRoot, "dist-server/coding-agent/cli.cjs"),
 	external: [
 		"node:*",
 	],
+	// CJS에서 import.meta.url을 사용하는 코드를 위한 shim
 	banner: {
-		js: [
-			'import { createRequire } from "node:module";',
-			'import { fileURLToPath as __ftp } from "node:url";',
-			'import { dirname as __dn } from "node:path";',
-			"const require = createRequire(import.meta.url);",
-			"const __filename = __ftp(import.meta.url);",
-			"const __dirname = __dn(__filename);",
-		].join("\n"),
+		js: 'const __import_meta_url = require("node:url").pathToFileURL(__filename).href;',
+	},
+	define: {
+		"import.meta.url": "__import_meta_url",
 	},
 });
 
-// AGENT.md는 런타임에 readFileSync로 읽으므로 번들에 포함되지 않음 — 수동 복사
+// 런타임에 readFileSync로 읽는 파일들은 번들에 포함되지 않음 — 수동 복사
+// 테마 파일 (RPC 모드 초기화 시 필요)
+const themeSrc = resolve(projectRoot, "packages/coding-agent/dist/modes/interactive/theme");
+const themeDest = resolve(desktopRoot, "dist-server/coding-agent/dist/modes/interactive/theme");
+mkdirSync(themeDest, { recursive: true });
+for (const file of ["dark.json", "light.json", "theme-schema.json"]) {
+	const src = resolve(themeSrc, file);
+	if (existsSync(src)) cpSync(src, resolve(themeDest, file));
+}
+
+// package.json (PI_PACKAGE_DIR에서 읽으므로 최소 버전 필요)
+const origPkg = JSON.parse(readFileSync(resolve(projectRoot, "packages/coding-agent/package.json"), "utf-8"));
+const minPkg = { name: origPkg.name, version: origPkg.version };
+writeFileSync(resolve(desktopRoot, "dist-server/coding-agent/package.json"), JSON.stringify(minPkg));
+
+// AGENT.md
 const agentMdSrc = resolve(projectRoot, "packages/coding-agent/AGENT.md");
 const agentMdDest = resolve(desktopRoot, "dist-server/coding-agent/AGENT.md");
 if (existsSync(agentMdSrc)) {

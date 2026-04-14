@@ -17,7 +17,7 @@ const isRelease = !!process.env.RESOURCE_DIR;
 
 // Path to the coding-agent CLI
 const CLI_PATH = isRelease
-	? resolve(process.env.RESOURCE_DIR!, "coding-agent", "cli.js")
+	? resolve(process.env.RESOURCE_DIR!, "coding-agent", "cli.cjs")
 	: resolve(import.meta.dirname, "../../coding-agent/dist/cli.js");
 
 // Working directory for the agent (project root)
@@ -44,9 +44,12 @@ function spawnRpcAgent(): ChildProcess {
 	const model = process.env.RPC_MODEL || "gpt-5.4";
 	args.push("--provider", provider, "--model", model);
 
+	// 릴리즈 번들에서 getPackageDir()가 올바른 경로를 찾도록 PI_PACKAGE_DIR 설정
+	const cliDir = isRelease ? resolve(process.env.RESOURCE_DIR!, "coding-agent") : undefined;
+
 	const child = spawn("node", [CLI_PATH, ...args], {
 		cwd: AGENT_CWD,
-		env: process.env,
+		env: { ...process.env, ...(cliDir ? { PI_PACKAGE_DIR: cliDir } : {}) },
 		stdio: ["pipe", "pipe", "pipe"],
 		windowsHide: true,
 	});

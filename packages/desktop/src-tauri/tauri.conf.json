@@ -35,7 +35,8 @@
     },
     "resources": {
       "../dist-server/server/*": "server/",
-      "../dist-server/coding-agent/*": "coding-agent/"
+      "../dist-server/coding-agent/*": "coding-agent/",
+      "../dist-server/coding-agent/dist/modes/interactive/theme/*": "coding-agent/dist/modes/interactive/theme/"
     },
     "icon": [
       "icons/32x32.png",

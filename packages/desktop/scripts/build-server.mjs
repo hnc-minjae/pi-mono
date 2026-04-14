@@ -41,12 +41,7 @@ await build({
 	},
 });
 
-// mcp-hwp-server.mjs는 이미 번들된 파일 — 그대로 복사
-mkdirSync(resolve(desktopRoot, "dist-server/server"), { recursive: true });
-cpSync(
-	resolve(desktopRoot, "server/mcp-hwp-server.mjs"),
-	resolve(desktopRoot, "dist-server/server/mcp-hwp-server.mjs"),
-);
+// MCP 서버는 npm 패키지(@hancom/hwp-cli)에서 런타임 resolve — 번들에 포함하지 않음
 
 console.log("[build-server] Server bundled to dist-server/server/");
 

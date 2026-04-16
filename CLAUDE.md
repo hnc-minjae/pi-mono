@@ -31,7 +31,7 @@ npm test
 | `packages/mom` | 메시지 오케스트레이터 |
 | `packages/tui` | TUI 컴포넌트 |
 | `packages/web-ui` | 웹 UI 컴포넌트 |
-| `packages/pods` | 통합 패키지 |
+| `packages/pods` | vLLM GPU Pod 관리 CLI |
 
 ## Gotchas
 

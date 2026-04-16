@@ -32,7 +32,7 @@ const oauthTokens = await Promise.all([
 	resolveApiKey("google-antigravity"),
 	resolveApiKey("openai-codex"),
 ]);
-const [anthropicOAuthToken, githubCopilotToken, geminiCliToken, antigravityToken, openaiCodexToken] = oauthTokens;
+const [anthropicOAuthToken, _githubCopilotToken, geminiCliToken, antigravityToken, openaiCodexToken] = oauthTokens;
 
 // Calculator tool definition (same as examples)
 // Note: Using StringEnum helper because Google's API doesn't support anyOf/const patterns

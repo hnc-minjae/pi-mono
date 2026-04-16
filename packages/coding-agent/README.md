@@ -1,13 +1,3 @@
-<!-- OSS_WEEKEND_START -->
-# 🏖️ OSS Weekend
-
-**Issue tracker reopens Monday, April 6, 2026.**
-
-OSS weekend runs Friday, March 27, 2026 through Monday, April 6, 2026. New issues are auto-closed during this time. For support, join [Discord](https://discord.com/invite/3cU7Bz4UPx).
-<!-- OSS_WEEKEND_END -->
-
----
-
 <p align="center">
   <a href="https://shittycodingagent.ai">
     <img src="https://shittycodingagent.ai/logo.svg" alt="pi logo" width="128">
@@ -24,11 +14,31 @@ OSS weekend runs Friday, March 27, 2026 through Monday, April 6, 2026. New issue
   <a href="https://exe.dev"><img src="docs/images/exy.png" alt="Exy mascot" width="48" /><br />exe.dev</a>
 </p>
 
+> New issues and PRs from new contributors are auto-closed by default. Maintainers review auto-closed issues daily. See [CONTRIBUTING.md](../../CONTRIBUTING.md).
+
+---
+
 Pi is a minimal terminal coding harness. Adapt pi to your workflows, not the other way around, without having to fork and modify pi internals. Extend it with TypeScript [Extensions](#extensions), [Skills](#skills), [Prompt Templates](#prompt-templates), and [Themes](#themes). Put your extensions, skills, prompt templates, and themes in [Pi Packages](#pi-packages) and share them with others via npm or git.
 
 Pi ships with powerful defaults but skips features like sub agents and plan mode. Instead, you can ask pi to build what you want or install a third party pi package that matches your workflow.
 
 Pi runs in four modes: interactive, print or JSON, RPC for process integration, and an SDK for embedding in your own apps. See [openclaw/openclaw](https://github.com/openclaw/openclaw) for a real-world SDK integration.
+
+## Share your OSS coding agent sessions
+
+If you use pi for open source work, please share your coding agent sessions.
+
+Public OSS session data helps improve models, prompts, tools, and evaluations using real development workflows.
+
+For the full explanation, see [this post on X](https://x.com/badlogicgames/status/2037811643774652911).
+
+To publish sessions, use [`badlogic/pi-share-hf`](https://github.com/badlogic/pi-share-hf). Read its README.md for setup instructions. All you need is a Hugging Face account, the Hugging Face CLI, and `pi-share-hf`.
+
+You can also watch [this video](https://x.com/badlogicgames/status/2041151967695634619), where I show how I publish my `pi-mono` sessions.
+
+I regularly publish my own `pi-mono` work sessions here:
+
+- [badlogicgames/pi-mono on Hugging Face](https://huggingface.co/datasets/badlogicgames/pi-mono)
 
 ## Table of Contents
 
@@ -167,7 +177,7 @@ Type `/` in the editor to trigger commands. [Extensions](#extensions) can regist
 | `/reload` | Reload keybindings, extensions, skills, prompts, and context files (themes hot-reload automatically) |
 | `/hotkeys` | Show all keyboard shortcuts |
 | `/changelog` | Display version history |
-| `/quit`, `/exit` | Quit pi |
+| `/quit` | Quit pi |
 
 ### Keyboard Shortcuts
 
@@ -254,6 +264,8 @@ Use `/settings` to modify common options, or edit JSON files directly:
 | `.pi/settings.json` | Project (overrides global) |
 
 See [docs/settings.md](docs/settings.md) for all options.
+
+To opt out of anonymous install/update telemetry tied to changelog detection, set `enableInstallTelemetry` to `false` in `settings.json`, or set `PI_TELEMETRY=0`.
 
 ---
 
@@ -392,14 +404,18 @@ See [docs/packages.md](docs/packages.md).
 ```typescript
 import { AuthStorage, createAgentSession, ModelRegistry, SessionManager } from "@mariozechner/pi-coding-agent";
 
+const authStorage = AuthStorage.create();
+const modelRegistry = ModelRegistry.create(authStorage);
 const { session } = await createAgentSession({
   sessionManager: SessionManager.inMemory(),
-  authStorage: AuthStorage.create(),
-  modelRegistry: ModelRegistry.create(authStorage),
+  authStorage,
+  modelRegistry,
 });
 
 await session.prompt("What files are in the current directory?");
 ```
+
+For advanced multi-session runtime replacement, use `createAgentSessionRuntime()` and `AgentSessionRuntime`.
 
 See [docs/sdk.md](docs/sdk.md) and [examples/sdk/](examples/sdk/).
 
@@ -574,6 +590,7 @@ pi --thinking high "Solve this complex problem"
 | `PI_CODING_AGENT_DIR` | Override config directory (default: `~/.pi/agent`) |
 | `PI_PACKAGE_DIR` | Override package directory (useful for Nix/Guix where store paths tokenize poorly) |
 | `PI_SKIP_VERSION_CHECK` | Skip version check at startup |
+| `PI_TELEMETRY` | Override install telemetry. Use `1`/`true`/`yes` to enable or `0`/`false`/`no` to disable |
 | `PI_CACHE_RETENTION` | Set to `long` for extended prompt cache (Anthropic: 1h, OpenAI: 24h) |
 | `VISUAL`, `EDITOR` | External editor for Ctrl+G |
 

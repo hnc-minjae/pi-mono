@@ -12,8 +12,8 @@
  */
 
 import { build } from "esbuild";
-import { cpSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { resolve, dirname } from "node:path";
+import { cpSync, existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
+import { resolve, dirname, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -89,3 +89,81 @@ if (existsSync(agentMdSrc)) {
 }
 
 console.log("[build-server] Coding agent bundled to dist-server/coding-agent/");
+
+// .pi 에셋 복사 — 에이전트 구성 파일 (npm, han-doc/output 제외)
+const piSrc = resolve(projectRoot, ".pi");
+const piDest = resolve(desktopRoot, "dist-server/.pi");
+
+// 일반 디렉토리 복사
+for (const dir of ["skills", "extensions", "agents", "docs", "prompts", "scripts"]) {
+	const src = resolve(piSrc, dir);
+	const dest = resolve(piDest, dir);
+	if (existsSync(src)) {
+		cpSync(src, dest, { recursive: true });
+	}
+}
+
+// han-doc/templates 복사 (output 제외)
+const hanDocTemplatesSrc = resolve(piSrc, "han-doc/templates");
+const hanDocTemplatesDest = resolve(piDest, "han-doc/templates");
+if (existsSync(hanDocTemplatesSrc)) {
+	mkdirSync(hanDocTemplatesDest, { recursive: true });
+	cpSync(hanDocTemplatesSrc, hanDocTemplatesDest, { recursive: true });
+}
+
+console.log("[build-server] .pi assets copied to dist-server/.pi/");
+
+// HWP MCP stdio 서버 번들 복사 (@hancom/hwp-cli)
+const hwpMcpSrc = resolve(projectRoot, "node_modules/@hancom/hwp-cli/dist/mcp-stdio-server.mjs");
+const hwpMcpDest = resolve(desktopRoot, "dist-server/hwp-mcp/mcp-stdio-server.mjs");
+if (existsSync(hwpMcpSrc)) {
+	mkdirSync(dirname(hwpMcpDest), { recursive: true });
+	cpSync(hwpMcpSrc, hwpMcpDest);
+	console.log("[build-server] HWP MCP server copied to dist-server/hwp-mcp/");
+} else {
+	console.warn("[build-server] WARNING: @hancom/hwp-cli MCP server not found");
+}
+
+// tauri.conf.json 리소스 항목 자동 생성 — .pi/ 서브디렉토리 구조 보존
+// Tauri의 **/* 패턴은 파일을 flat하게 설치하므로 각 디렉토리마다 명시적 항목 필요
+function collectLeafDirs(dir) {
+	const dirs = new Set();
+	function walk(current) {
+		const entries = readdirSync(current, { withFileTypes: true });
+		const hasFiles = entries.some((e) => e.isFile());
+		if (hasFiles) {
+			dirs.add(current);
+		}
+		for (const entry of entries) {
+			if (entry.isDirectory()) {
+				walk(resolve(current, entry.name));
+			}
+		}
+	}
+	walk(dir);
+	return dirs;
+}
+
+const piDest2 = resolve(desktopRoot, "dist-server/.pi");
+const leafDirs = collectLeafDirs(piDest2);
+
+const baseResources = {
+	"../dist-server/server/*": "server/",
+	"../dist-server/coding-agent/*": "coding-agent/",
+	"../dist-server/coding-agent/dist/modes/interactive/theme/*": "coding-agent/dist/modes/interactive/theme/",
+	"../dist-server/hwp-mcp/*": "hwp-mcp/",
+};
+
+// .pi/ 리소스
+for (const leafDir of leafDirs) {
+	const rel = relative(piDest2, leafDir).replace(/\\/g, "/");
+	const src = rel ? `../dist-server/.pi/${rel}/*` : "../dist-server/.pi/*";
+	const dest = rel ? `.pi/${rel}/` : ".pi/";
+	baseResources[src] = dest;
+}
+
+const tauriConfPath = resolve(desktopRoot, "src-tauri/tauri.conf.json");
+const tauriConf = JSON.parse(readFileSync(tauriConfPath, "utf-8"));
+tauriConf.bundle.resources = baseResources;
+writeFileSync(tauriConfPath, JSON.stringify(tauriConf, null, 2) + "\n");
+console.log(`[build-server] tauri.conf.json updated — ${leafDirs.size} .pi resource entries added`);

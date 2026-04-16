@@ -6,7 +6,7 @@
 
 import { type ChildProcess, spawn } from "node:child_process";
 import { resolve, join } from "node:path";
-import { readFileSync, existsSync } from "node:fs";
+import { readFileSync, existsSync, writeFileSync, mkdirSync } from "node:fs";
 import { homedir } from "node:os";
 import { WebSocketServer, WebSocket } from "ws";
 
@@ -57,7 +57,8 @@ function spawnRpcAgent(): ChildProcess {
 	console.log(`[bridge] RPC agent spawned (pid: ${child.pid})`);
 
 	child.stderr?.on("data", (data: Buffer) => {
-		process.stderr.write(`[rpc stderr] ${data.toString()}`);
+		const msg = data.toString();
+		process.stderr.write(`[rpc stderr] ${msg}`);
 	});
 
 	child.on("exit", (code) => {

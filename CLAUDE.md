@@ -75,6 +75,7 @@ packages/desktop/
 - **pre-commit 훅이 `npm run check` 실행** — biome + tsgo 에러가 있으면 커밋 차단
 - **테스트는 패키지 루트에서 실행** — 레포 루트에서 `npm test` 금지, 자세한 내용은 `.claude/rules/test.md` 참조
 - **MCP 서버 추가 시 3곳 동시 수정 필수** — 위 "MCP 서버 구성" 참조
+- **릴리즈 빌드 시 coding-agent 수동 빌드 필요** — `.claude/rules/release-build.md` 참조
 
 ## Docs
 

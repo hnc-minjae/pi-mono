@@ -15,6 +15,11 @@ import * as _bundledPiAi from "@mariozechner/pi-ai";
 import * as _bundledPiAiOauth from "@mariozechner/pi-ai/oauth";
 import type { KeyId } from "@mariozechner/pi-tui";
 import * as _bundledPiTui from "@mariozechner/pi-tui";
+import * as _bundledMcpClientAuth from "@modelcontextprotocol/sdk/client/auth.js";
+import * as _bundledMcpClient from "@modelcontextprotocol/sdk/client/index.js";
+import * as _bundledMcpStdio from "@modelcontextprotocol/sdk/client/stdio.js";
+import * as _bundledMcpStreamableHttp from "@modelcontextprotocol/sdk/client/streamableHttp.js";
+import * as _bundledMcpSharedAuth from "@modelcontextprotocol/sdk/shared/auth.js";
 // Static imports of packages that extensions may use.
 // These MUST be static so Bun bundles them into the compiled binary.
 // The virtualModules option then makes them available to extensions.
@@ -47,6 +52,11 @@ const VIRTUAL_MODULES: Record<string, unknown> = {
 	"@mariozechner/pi-ai": _bundledPiAi,
 	"@mariozechner/pi-ai/oauth": _bundledPiAiOauth,
 	"@mariozechner/pi-coding-agent": _bundledPiCodingAgent,
+	"@modelcontextprotocol/sdk/client/index.js": _bundledMcpClient,
+	"@modelcontextprotocol/sdk/client/auth.js": _bundledMcpClientAuth,
+	"@modelcontextprotocol/sdk/client/streamableHttp.js": _bundledMcpStreamableHttp,
+	"@modelcontextprotocol/sdk/client/stdio.js": _bundledMcpStdio,
+	"@modelcontextprotocol/sdk/shared/auth.js": _bundledMcpSharedAuth,
 };
 
 const require = createRequire(import.meta.url);
@@ -84,6 +94,16 @@ function getAliases(): Record<string, string> {
 	};
 
 	return _aliases;
+}
+
+/** node_modules에서 alias 해석이 가능한지 확인 (릴리즈 CJS 번들에서는 불가) */
+function canResolveAliases(): boolean {
+	try {
+		require.resolve("@sinclair/typebox");
+		return true;
+	} catch {
+		return false;
+	}
 }
 
 const UNICODE_SPACES = /[\u00A0\u2000-\u200A\u202F\u205F\u3000]/g;
@@ -295,7 +315,9 @@ async function loadExtensionModule(extensionPath: string) {
 		// In Bun binary: use virtualModules for bundled packages (no filesystem resolution)
 		// Also disable tryNative so jiti handles ALL imports (not just the entry point)
 		// In Node.js/dev: use aliases to resolve to node_modules paths
-		...(isBunBinary ? { virtualModules: VIRTUAL_MODULES, tryNative: false } : { alias: getAliases() }),
+		...(isBunBinary || !canResolveAliases()
+			? { virtualModules: VIRTUAL_MODULES, tryNative: false }
+			: { alias: getAliases() }),
 	});
 
 	const module = await jiti.import(extensionPath, { default: true });

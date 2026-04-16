@@ -22,9 +22,13 @@ discoverAndLoadExtensions()
 
 **진입점 탐색 순서**: `package.json("pi.extensions")` → `index.ts` → `index.js`
 
-**가상 모듈** (번들 모드에서 자동 해결):
+**가상 모듈** (릴리즈 CJS 번들에서 자동 해결, `loader.ts` VIRTUAL_MODULES):
 - `@sinclair/typebox`, `@mariozechner/pi-agent-core`, `@mariozechner/pi-tui`
 - `@mariozechner/pi-ai`, `@mariozechner/pi-ai/oauth`, `@mariozechner/pi-coding-agent`
+- `@modelcontextprotocol/sdk/client/index.js`, `client/auth.js`, `client/streamableHttp.js`, `client/stdio.js`
+- `@modelcontextprotocol/sdk/shared/auth.js`
+
+> extension에 외부 import 추가 시 반드시 VIRTUAL_MODULES에도 등록 — 상세: `.claude/rules/release-build.md`
 
 ## ExtensionAPI 주요 메서드
 

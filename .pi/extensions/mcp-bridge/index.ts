@@ -16,9 +16,10 @@
 // 사내 SSL 프록시 환경에서 인증서 검증 우회 (개발 환경 전용)
 process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
 
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { homedir } from "node:os";
+
 import { Type } from "@mariozechner/pi-ai";
 import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
@@ -49,14 +50,37 @@ interface McpStdioServerConfig {
 
 type McpServerConfig = McpHttpServerConfig | McpStdioServerConfig;
 
-// @hancom/hwp-cli 패키지의 번들된 MCP 서버 경로
+// @hancom/hwp-cli 패키지의 MCP 서버 경로
 function resolveHwpMcpServer(): string {
+	const mcpRelPath = join("@hancom", "hwp-cli", "dist", "mcp-stdio-server.mjs");
+
+	// 1. 릴리즈 번들: {cwd}/hwp-mcp/mcp-stdio-server.mjs
+	const bundledPath = join(process.cwd(), "hwp-mcp", "mcp-stdio-server.mjs");
+	if (existsSync(bundledPath)) return bundledPath;
+
+	// 2. require.resolve (dev 모드 — 프로젝트 node_modules)
 	try {
 		return require.resolve("@hancom/hwp-cli/dist/mcp-stdio-server.mjs");
-	} catch {
-		// fallback: node_modules에서 직접 탐색
-		return join(process.cwd(), "node_modules", "@hancom", "hwp-cli", "dist", "mcp-stdio-server.mjs");
-	}
+	} catch {}
+
+	// 2. cwd/node_modules (dev 모드 fallback)
+	const localPath = join(process.cwd(), "node_modules", mcpRelPath);
+	if (existsSync(localPath)) return localPath;
+
+	// 3. npm 글로벌 설치 경로
+	try {
+		const { execSync } = require("node:child_process");
+		const globalRoot = execSync("npm root -g", { encoding: "utf-8" }).trim();
+		const globalPath = join(globalRoot, mcpRelPath);
+		if (existsSync(globalPath)) return globalPath;
+	} catch {}
+
+	// 4. 일반적인 글로벌 경로 (Windows)
+	const appDataPath = join(homedir(), "AppData", "Roaming", "npm", "node_modules", mcpRelPath);
+	if (existsSync(appDataPath)) return appDataPath;
+
+	console.error("[mcp-bridge] @hancom/hwp-cli를 찾을 수 없습니다. npm install -g @hancom/hwp-cli 로 설치하세요.");
+	return localPath; // 마지막 fallback (에러 발생 시 상세 경로 노출)
 }
 
 const MCP_SERVERS: McpServerConfig[] = [
@@ -188,13 +212,16 @@ function registerMcpTool(
 
 // --- MCP Connection ---
 
-/** 기존 토큰으로만 연결 시도 — OAuth 플로우 없음 */
+/** 기존 토큰으로만 연결 시도 — OAuth 플로우 없음 (5초 타임아웃) */
 async function connectHttpServerWithToken(config: McpHttpServerConfig): Promise<Client | null> {
 	const authProvider = new McpOAuthProvider(config.key);
 	try {
 		const transport = new StreamableHTTPClientTransport(new URL(config.url), { authProvider });
 		const client = new Client({ name: "han-ai-orchestrator", version: "1.0.0" });
-		await client.connect(transport);
+		await Promise.race([
+			client.connect(transport),
+			new Promise((_, reject) => setTimeout(() => reject(new Error("timeout")), 5000)),
+		]);
 		console.log(`[mcp-bridge] ${config.name}: 기존 토큰으로 연결 성공!`);
 		return client;
 	} catch {
@@ -312,15 +339,15 @@ export default async function mcpBridgeExtension(pi: ExtensionAPI) {
 		},
 	});
 
-	// session_start 이벤트에서 도구 등록 — 기존 토큰만 사용, OAuth 블로킹 없음
-	pi.on("session_start", async () => {
-		for (const config of MCP_SERVERS) {
+	// session_start 이벤트에서 도구 등록 — 백그라운드 병렬 연결, 기존 토큰만 사용
+	pi.on("session_start", () => {
+		Promise.allSettled(MCP_SERVERS.map(async (config) => {
 			console.log(`[mcp-bridge] Connecting to ${config.name}...`);
 
 			const client = await connectServerWithToken(config);
 			if (!client) {
 				console.log(`[mcp-bridge] ${config.name}: 자동 연결 실패. /mcp-connect 로 수동 연결하세요.`);
-				continue;
+				return;
 			}
 
 			try {
@@ -337,7 +364,7 @@ export default async function mcpBridgeExtension(pi: ExtensionAPI) {
 			} catch (err: any) {
 				console.error(`[mcp-bridge] Failed to list tools for ${config.name}:`, err?.message);
 			}
-		}
+		}));
 	});
 
 	// 자연어 → 문서 스킬 자동 트리거

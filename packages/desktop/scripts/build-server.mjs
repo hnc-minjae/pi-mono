@@ -119,6 +119,22 @@ const hwpMcpDest = resolve(desktopRoot, "dist-server/hwp-mcp/mcp-stdio-server.mj
 if (existsSync(hwpMcpSrc)) {
 	mkdirSync(dirname(hwpMcpDest), { recursive: true });
 	cpSync(hwpMcpSrc, hwpMcpDest);
+
+	// winax: 한글 COM 자동화용 네이티브 애드온 (cowriter:auto 서비스에 필요)
+	// mcp-stdio-server.mjs가 require("winax")로 동적 로드 — node_modules에 있어야 함
+	const winaxSrc = resolve(projectRoot, "node_modules/winax");
+	if (existsSync(winaxSrc)) {
+		const winaxDest = resolve(desktopRoot, "dist-server/hwp-mcp/node_modules/winax");
+		mkdirSync(resolve(winaxDest, "build/Release"), { recursive: true });
+		for (const f of ["index.js", "activex.js", "package.json"]) {
+			if (existsSync(resolve(winaxSrc, f))) cpSync(resolve(winaxSrc, f), resolve(winaxDest, f));
+		}
+		cpSync(resolve(winaxSrc, "build/Release"), resolve(winaxDest, "build/Release"), { recursive: true });
+		console.log("[build-server] winax (COM automation) copied to dist-server/hwp-mcp/node_modules/");
+	} else {
+		console.warn("[build-server] WARNING: winax not found — HWP COM automation will not work");
+	}
+
 	console.log("[build-server] HWP MCP server copied to dist-server/hwp-mcp/");
 } else {
 	console.warn("[build-server] WARNING: @hancom/hwp-cli MCP server not found");
@@ -160,6 +176,18 @@ for (const leafDir of leafDirs) {
 	const src = rel ? `../dist-server/.pi/${rel}/*` : "../dist-server/.pi/*";
 	const dest = rel ? `.pi/${rel}/` : ".pi/";
 	baseResources[src] = dest;
+}
+
+// hwp-mcp/node_modules 리소스 (winax 등 네이티브 의존성)
+const hwpNmDest = resolve(desktopRoot, "dist-server/hwp-mcp/node_modules");
+if (existsSync(hwpNmDest)) {
+	const hwpNmLeafDirs = collectLeafDirs(hwpNmDest);
+	for (const leafDir of hwpNmLeafDirs) {
+		const rel = relative(hwpNmDest, leafDir).replace(/\\/g, "/");
+		const src = rel ? `../dist-server/hwp-mcp/node_modules/${rel}/*` : "../dist-server/hwp-mcp/node_modules/*";
+		const dest = rel ? `hwp-mcp/node_modules/${rel}/` : "hwp-mcp/node_modules/";
+		baseResources[src] = dest;
+	}
 }
 
 const tauriConfPath = resolve(desktopRoot, "src-tauri/tauri.conf.json");

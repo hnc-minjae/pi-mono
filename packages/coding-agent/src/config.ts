@@ -143,6 +143,11 @@ export function getReadmePath(): string {
 	return resolve(join(getPackageDir(), "README.md"));
 }
 
+/** Get path to AGENT.md (agent role definition) */
+export function getAgentMdPath(): string {
+	return resolve(join(getPackageDir(), "AGENT.md"));
+}
+
 /** Get path to docs directory */
 export function getDocsPath(): string {
 	return resolve(join(getPackageDir(), "docs"));

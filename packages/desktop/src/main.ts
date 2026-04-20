@@ -157,6 +157,19 @@ const createAgent = async () => {
 	agent = new RpcAgent(WS_URL);
 	await agent.connect();
 
+	// IndexedDB에 저장된 API 키들을 RPC 에이전트에 전달 (비동기 — UI 블로킹 없음)
+	storage.providerKeys
+		.list()
+		.then(async (providers) => {
+			for (const provider of providers) {
+				const apiKey = await storage.providerKeys.get(provider);
+				if (apiKey) {
+					await agent.setApiKey(provider, apiKey).catch(() => {});
+				}
+			}
+		})
+		.catch(() => {});
+
 	agentUnsubscribe = agent.subscribe((event: any) => {
 		if (event.type === "agent_end" || event.type === "message_end" || event.type === "agent_start") {
 			const messages = agent.state.messages;
@@ -177,22 +190,26 @@ const createAgent = async () => {
 		}
 	});
 
-	await chatPanel.setAgent(agent as any, {
-		// RPC 에이전트가 서버 측에서 API 키를 관리하므로 항상 통과
-		onApiKeyRequired: async () => true,
-		onModelSelect: async () => {
-			const availableModels = await agent.getAvailableModels();
-			ModelSelector.open(
-				agent.state.model,
-				async (model) => {
-					await agent.setModel(model.provider, model.id);
-				},
-				undefined,
-				availableModels.length > 0 ? availableModels : undefined,
-			);
-		},
-		toolsFactory: () => [],
-	});
+	try {
+		await chatPanel.setAgent(agent as any, {
+			// RPC 에이전트가 서버 측에서 API 키를 관리하므로 항상 통과
+			onApiKeyRequired: async () => true,
+			onModelSelect: async () => {
+				const availableModels = await agent.getAvailableModels();
+				ModelSelector.open(
+					agent.state.model,
+					async (model) => {
+						await agent.setModel(model.provider, model.id);
+					},
+					undefined,
+					availableModels.length > 0 ? availableModels : undefined,
+				);
+			},
+			toolsFactory: () => [],
+		});
+	} catch (err) {
+		console.error("[createAgent] chatPanel.setAgent failed:", err);
+	}
 };
 
 const loadSession = async (_sessionId: string): Promise<boolean> => {
@@ -354,13 +371,17 @@ async function initApp() {
 			return;
 		}
 	} else {
-		await createAgent();
+		try {
+			await createAgent();
+		} catch (err) {
+			console.error("[initApp] createAgent failed:", err);
+		}
 	}
 
 	renderApp();
 }
 
-initApp();
+initApp().catch((err) => console.error("[initApp] fatal:", err));
 
 // ============================================================================
 // MCP Settings Tab (인라인 정의)
@@ -375,6 +396,7 @@ function createMcpTab(rpcAgent: RpcAgent): SettingsTab {
 	const servers = [
 		{ key: "atlassian", name: "Atlassian (Jira/Confluence)", connected: false, expiresAt: 0 },
 		{ key: "hwp-cowriter-file", name: "HWP Cowriter (File)", connected: false, expiresAt: 0 },
+		{ key: "hwp-cowriter-auto", name: "HWP Cowriter (Auto)", connected: false, expiresAt: 0 },
 	];
 
 	function renderMcpContent() {

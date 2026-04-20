@@ -33,12 +33,61 @@ npm test
 | `packages/web-ui` | 웹 UI 컴포넌트 |
 | `packages/pods` | vLLM GPU Pod 관리 CLI |
 
+## MCP 서버 구성
+
+MCP 서버를 추가/수정할 때 **3곳 모두** 반영해야 한다:
+
+| 파일 | 역할 | 변경 내용 |
+|------|------|-----------|
+| `.pi/extensions/mcp-bridge/index.ts` | 코딩 에이전트(pi)용 MCP 연결 | `MCP_SERVERS` 배열에 서버 추가 |
+| `packages/desktop/server/bridge.ts` | 데스크톱 bridge 서버 | `stdioServers` Set + `servers` 배열에 추가 |
+| `packages/desktop/src/main.ts` | 데스크톱 프론트엔드 UI | `servers` 배열에 추가 (하드코딩, bridge 응답으로 자동 추가 안 됨) |
+
+- `@hancom/hwp-cli/dist/mcp-stdio-server.mjs`가 MCP stdio 서버 바이너리
+- `--service cowriter:file` (파일 기반), `--service cowriter:auto` (한글 COM 자동화)
+- stdio 서버는 토큰 없이 연결 가능, HTTP 서버(Atlassian)는 OAuth 필요
+
+## Desktop 앱 구조
+
+```
+packages/desktop/
+├── src/                    # 프론트엔드 (Lit + Vite)
+│   ├── main.ts             # 메인 앱 엔트리 (MCP 설정 UI 포함)
+│   ├── mcp-settings-tab.ts # MCP 설정 탭 컴포넌트
+│   └── rpc-adapter.ts      # WebSocket RPC 어댑터
+├── server/                 # Bridge 서버 (Node.js)
+│   ├── start.ts            # 서버 엔트리
+│   └── bridge.ts           # RPC bridge + MCP 상태 관리
+└── src-tauri/              # Tauri Rust 백엔드
+    └── src/lib.rs          # 커맨드, 플러그인 등록
+
+.pi/extensions/mcp-bridge/
+└── index.ts                # 코딩 에이전트용 MCP 브릿지 확장
+```
+
+- 실행: `npx tauri dev` (packages/desktop에서)
+- bridge 서버는 Tauri가 sidecar로 자동 실행 (`tsx server/start.ts`)
+
 ## Gotchas
 
 - **`packages/ai/src/models.generated.ts`는 자동 생성 파일** — 직접 수정 금지, `npm run generate-models`로 재생성
 - **`@hancom` 패키지 설치 시 `GITLAB_NPM_TOKEN` 필요** — 없으면 `npm ci` 실패
 - **pre-commit 훅이 `npm run check` 실행** — biome + tsgo 에러가 있으면 커밋 차단
 - **테스트는 패키지 루트에서 실행** — 레포 루트에서 `npm test` 금지, 자세한 내용은 `.claude/rules/test.md` 참조
+- **MCP 서버 추가 시 3곳 동시 수정 필수** — 위 "MCP 서버 구성" 참조
+- **릴리즈 빌드 시 coding-agent 수동 빌드 필요** — `.claude/rules/release-build.md` 참조
+
+## Docs
+
+프로젝트 참조 문서는 `.claude/docs/`에 있습니다. **작업 전 해당 문서를 먼저 읽을 것.**
+
+| 문서 | 참조 시점 |
+|------|-----------|
+| `architecture.md` | 프로젝트 전체 구조, 패키지 의존 관계, 데이터 흐름 파악 시 |
+| `desktop-app.md` | Desktop 프론트엔드/서버/Tauri 수정 시 |
+| `mcp-system.md` | MCP 서버 추가/수정, OAuth, 토큰 관리 작업 시 |
+| `rpc-protocol.md` | RPC 명령/응답/이벤트 추가, 통신 디버깅 시 |
+| `extension-system.md` | .pi/ 확장/스킬/에이전트 추가/수정 시 |
 
 ## Rules
 

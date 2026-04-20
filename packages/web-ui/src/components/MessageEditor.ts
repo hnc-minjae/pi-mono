@@ -353,7 +353,7 @@ export class MessageEditor extends LitElement {
 					<!-- Model selector and send on the right -->
 					<div class="flex gap-2 items-center">
 						${
-							this.showModelSelector && this.currentModel
+							this.showModelSelector
 								? html`
 									${Button({
 										variant: "ghost",
@@ -368,7 +368,7 @@ export class MessageEditor extends LitElement {
 										},
 										children: html`
 											${icon(Sparkles, "sm")}
-											<span class="ml-1">${this.currentModel.id}</span>
+											<span class="ml-1">${this.currentModel ? this.currentModel.id : i18n("Select Model")}</span>
 										`,
 										className: "h-8 text-xs truncate",
 									})}

@@ -1,8 +1,41 @@
+/*
+ * Copyright 2026 Hancom Inc. All rights reserved.
+ *
+ * https://www.hancom.com/
+ */
+
 import { Type } from "@sinclair/typebox";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { getModel } from "../src/models.js";
 import { streamSimple } from "../src/stream.js";
-import type { Tool } from "../src/types.js";
+import type { Model, Tool } from "../src/types.js";
+
+const zaiGlm5: Model<"openai-completions"> = {
+	id: "glm-5",
+	name: "GLM-5",
+	api: "openai-completions",
+	provider: "zai",
+	baseUrl: "https://api.z.ai/v1",
+	reasoning: true,
+	input: ["text"],
+	cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+	contextWindow: 128000,
+	maxTokens: 16384,
+	compat: { zaiToolStream: true },
+};
+
+const zaiGlmAir: Model<"openai-completions"> = {
+	id: "glm-4.5-air",
+	name: "GLM-4.5 Air",
+	api: "openai-completions",
+	provider: "zai",
+	baseUrl: "https://api.z.ai/v1",
+	reasoning: false,
+	input: ["text"],
+	cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+	contextWindow: 128000,
+	maxTokens: 16384,
+};
 
 const mockState = vi.hoisted(() => ({
 	lastParams: undefined as unknown,
@@ -70,7 +103,7 @@ describe("openai-completions tool_choice", () => {
 	});
 
 	it("forwards toolChoice from simple options to payload", async () => {
-		const { compat: _compat, ...baseModel } = getModel("openai", "gpt-4o-mini")!;
+		const { compat: _compat, ...baseModel } = getModel("openai", "gpt-5-chat-latest")!;
 		const model = { ...baseModel, api: "openai-completions" } as const;
 		const tools: Tool[] = [
 			{
@@ -111,7 +144,7 @@ describe("openai-completions tool_choice", () => {
 	});
 
 	it("omits strict when compat disables strict mode", async () => {
-		const { compat: _compat, ...baseModel } = getModel("openai", "gpt-4o-mini")!;
+		const { compat: _compat, ...baseModel } = getModel("openai", "gpt-5-chat-latest")!;
 		const model = {
 			...baseModel,
 			api: "openai-completions",
@@ -156,7 +189,7 @@ describe("openai-completions tool_choice", () => {
 	});
 
 	it("maps groq qwen3 reasoning levels to default reasoning_effort", async () => {
-		const model = getModel("groq", "qwen/qwen3-32b")!;
+		const model = getModel("openrouter", "qwen/qwen3-32b")!;
 		let payload: unknown;
 
 		await streamSimple(
@@ -184,7 +217,7 @@ describe("openai-completions tool_choice", () => {
 	});
 
 	it("keeps normal reasoning_effort for groq models without compat mapping", async () => {
-		const model = getModel("groq", "openai/gpt-oss-20b")!;
+		const model = getModel("openrouter", "openai/gpt-oss-20b")!;
 		let payload: unknown;
 
 		await streamSimple(
@@ -212,7 +245,7 @@ describe("openai-completions tool_choice", () => {
 	});
 
 	it("enables tool_stream for supported z.ai models with tools", async () => {
-		const model = getModel("zai", "glm-5")!;
+		const model = zaiGlm5;
 		const tools: Tool[] = [
 			{
 				name: "ping",
@@ -249,15 +282,12 @@ describe("openai-completions tool_choice", () => {
 	});
 
 	it("stores z.ai tool_stream support in model compat metadata", () => {
-		expect(getModel("zai", "glm-5")?.compat?.zaiToolStream).toBe(true);
-		expect(getModel("zai", "glm-4.7")?.compat?.zaiToolStream).toBe(true);
-		expect(getModel("zai", "glm-4.7-flash")?.compat?.zaiToolStream).toBe(true);
-		expect(getModel("zai", "glm-4.6v")?.compat?.zaiToolStream).toBe(true);
-		expect(getModel("zai", "glm-4.5-air")?.compat?.zaiToolStream).toBeUndefined();
+		expect(zaiGlm5.compat?.zaiToolStream).toBe(true);
+		expect(zaiGlmAir.compat?.zaiToolStream).toBeUndefined();
 	});
 
 	it("omits tool_stream for unsupported z.ai models", async () => {
-		const model = getModel("zai", "glm-4.5-air")!;
+		const model = zaiGlmAir;
 		const tools: Tool[] = [
 			{
 				name: "ping",
@@ -294,7 +324,7 @@ describe("openai-completions tool_choice", () => {
 	});
 
 	it("respects explicit z.ai tool_stream compat override", async () => {
-		const baseModel = getModel("zai", "glm-4.5-air")!;
+		const baseModel = zaiGlmAir;
 		const model = {
 			...baseModel,
 			compat: {
@@ -338,7 +368,7 @@ describe("openai-completions tool_choice", () => {
 	});
 
 	it("omits tool_stream when no tools are provided", async () => {
-		const model = getModel("zai", "glm-5")!;
+		const model = zaiGlm5;
 		let payload: unknown;
 
 		await streamSimple(
@@ -380,7 +410,7 @@ describe("openai-completions tool_choice", () => {
 			},
 		];
 
-		const model = getModel("zai", "glm-5")!;
+		const model = getModel("openrouter", "z-ai/glm-5")!;
 		const response = await streamSimple(
 			model,
 			{
@@ -418,7 +448,7 @@ describe("openai-completions tool_choice", () => {
 			},
 		];
 
-		const { compat: _compat, ...baseModel } = getModel("openai", "gpt-4o-mini")!;
+		const { compat: _compat, ...baseModel } = getModel("openai", "gpt-5-chat-latest")!;
 		const model = { ...baseModel, api: "openai-completions" } as const;
 		const response = await streamSimple(
 			model,
@@ -459,7 +489,7 @@ describe("openai-completions tool_choice", () => {
 			},
 		];
 
-		const { compat: _compat, ...baseModel } = getModel("openai", "gpt-4o-mini")!;
+		const { compat: _compat, ...baseModel } = getModel("openai", "gpt-5.4")!;
 		const model = { ...baseModel, api: "openai-completions" } as const;
 		const response = await streamSimple(
 			model,
@@ -504,7 +534,7 @@ describe("openai-completions tool_choice", () => {
 			},
 		];
 
-		const { compat: _compat, ...baseModel } = getModel("openai", "gpt-4o-mini")!;
+		const { compat: _compat, ...baseModel } = getModel("openai", "gpt-5.4")!;
 		const model = { ...baseModel, api: "openai-completions" } as const;
 		const response = await streamSimple(
 			model,

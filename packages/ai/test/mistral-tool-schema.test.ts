@@ -1,8 +1,26 @@
+/*
+ * Copyright 2026 Hancom Inc. All rights reserved.
+ *
+ * https://www.hancom.com/
+ */
+
 import { Type } from "@sinclair/typebox";
 import { describe, expect, it } from "vitest";
-import { getModel } from "../src/models.js";
 import { complete } from "../src/stream.js";
 import type { Context, Model } from "../src/types.js";
+
+const devstralModel: Model<"mistral-conversations"> = {
+	id: "devstral-medium-latest",
+	name: "Devstral Medium",
+	api: "mistral-conversations",
+	provider: "mistral",
+	baseUrl: "https://api.mistral.ai",
+	reasoning: false,
+	input: ["text"],
+	cost: { input: 0.1, output: 0.3, cacheRead: 0, cacheWrite: 0 },
+	contextWindow: 131072,
+	maxTokens: 16384,
+};
 
 interface MistralToolPayload {
 	tools?: Array<{
@@ -17,7 +35,7 @@ interface MistralToolPayload {
 describe("Mistral tool schema serialization", () => {
 	it("strips TypeBox symbol keys before the SDK validates tool schemas", async () => {
 		const model: Model<"mistral-conversations"> = {
-			...getModel("mistral", "devstral-medium-latest"),
+			...devstralModel,
 			baseUrl: "http://127.0.0.1:9",
 		};
 		const parameters = Type.Object({

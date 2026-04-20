@@ -92,7 +92,7 @@ describe("lazy provider module loading", () => {
 
 	it("loads only the Anthropic SDK when dispatching through streamSimple", () => {
 		const result = runProbe(`
-			const model = mod.getModel("anthropic", "claude-sonnet-4-20250514");
+			const model = mod.getModel("anthropic", "claude-sonnet-4-6");
 			const context = { messages: [{ role: "user", content: "hi" }] };
 			await mod.streamSimple(model, context).result();
 		`);

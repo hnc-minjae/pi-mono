@@ -439,6 +439,15 @@ export async function runRpcMode(runtimeHost: AgentSessionRuntime): Promise<neve
 			}
 
 			// =================================================================
+			// Auth
+			// =================================================================
+
+			case "set_api_key": {
+				session.modelRegistry.authStorage.setRuntimeApiKey(command.provider, command.apiKey);
+				return success(id, "set_api_key");
+			}
+
+			// =================================================================
 			// Model
 			// =================================================================
 

@@ -6,7 +6,7 @@
   "build": {
     "beforeDevCommand": "npm run dev:ui",
     "devUrl": "http://localhost:1420",
-    "beforeBuildCommand": "npm run build",
+    "beforeBuildCommand": "npm run build && npm run build:server",
     "frontendDist": "../dist"
   },
   "app": {
@@ -22,12 +22,71 @@
       }
     ],
     "security": {
-      "csp": "default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob:; connect-src *; img-src 'self' data: blob:; font-src 'self' data:; style-src 'self' 'unsafe-inline'"
+      "csp": "default-src 'self' 'unsafe-inline' data: blob:; script-src 'self' 'unsafe-inline'; connect-src 'self' ws://localhost:* wss://localhost:* https://api.openai.com https://*.openai.com https://api.anthropic.com https://*.anthropic.com https://*.azure.com; img-src 'self' data: blob:; font-src 'self' data:; style-src 'self' 'unsafe-inline'"
     }
   },
   "bundle": {
     "active": true,
     "targets": "all",
-    "icon": []
+    "windows": {
+      "nsis": {
+        "installMode": "currentUser"
+      },
+      "wix": {
+        "language": "ko-KR"
+      }
+    },
+    "resources": {
+      "../dist-server/server/*": "server/",
+      "../dist-server/coding-agent/*": "coding-agent/",
+      "../dist-server/coding-agent/dist/modes/interactive/theme/*": "coding-agent/dist/modes/interactive/theme/",
+      "../dist-server/hwp-mcp/*": "hwp-mcp/",
+      "../dist-server/.pi/agents/*": ".pi/agents/",
+      "../dist-server/.pi/docs/hancom/*": ".pi/docs/hancom/",
+      "../dist-server/.pi/docs/hancom/skill-references/*": ".pi/docs/hancom/skill-references/",
+      "../dist-server/.pi/extensions/*": ".pi/extensions/",
+      "../dist-server/.pi/extensions/han-ax/*": ".pi/extensions/han-ax/",
+      "../dist-server/.pi/extensions/mcp-bridge/*": ".pi/extensions/mcp-bridge/",
+      "../dist-server/.pi/extensions/subagent/*": ".pi/extensions/subagent/",
+      "../dist-server/.pi/han-doc/templates/*": ".pi/han-doc/templates/",
+      "../dist-server/.pi/prompts/*": ".pi/prompts/",
+      "../dist-server/.pi/scripts/*": ".pi/scripts/",
+      "../dist-server/.pi/skills/han-analyze/*": ".pi/skills/han-analyze/",
+      "../dist-server/.pi/skills/han-atlassian/*": ".pi/skills/han-atlassian/",
+      "../dist-server/.pi/skills/han-branch/*": ".pi/skills/han-branch/",
+      "../dist-server/.pi/skills/han-close/*": ".pi/skills/han-close/",
+      "../dist-server/.pi/skills/han-code/*": ".pi/skills/han-code/",
+      "../dist-server/.pi/skills/han-code-review/*": ".pi/skills/han-code-review/",
+      "../dist-server/.pi/skills/han-comment/*": ".pi/skills/han-comment/",
+      "../dist-server/.pi/skills/han-dev/*": ".pi/skills/han-dev/",
+      "../dist-server/.pi/skills/han-dev-setup/*": ".pi/skills/han-dev-setup/",
+      "../dist-server/.pi/skills/han-doc-draft/*": ".pi/skills/han-doc-draft/",
+      "../dist-server/.pi/skills/han-doc-greeting/*": ".pi/skills/han-doc-greeting/",
+      "../dist-server/.pi/skills/han-doc-memo/*": ".pi/skills/han-doc-memo/",
+      "../dist-server/.pi/skills/han-doc-plan/*": ".pi/skills/han-doc-plan/",
+      "../dist-server/.pi/skills/han-doc-reflection/*": ".pi/skills/han-doc-reflection/",
+      "../dist-server/.pi/skills/han-doc-report/*": ".pi/skills/han-doc-report/",
+      "../dist-server/.pi/skills/han-doc-report-gen/*": ".pi/skills/han-doc-report-gen/",
+      "../dist-server/.pi/skills/han-doc-solution/*": ".pi/skills/han-doc-solution/",
+      "../dist-server/.pi/skills/han-issue-check/*": ".pi/skills/han-issue-check/",
+      "../dist-server/.pi/skills/han-issue-create/*": ".pi/skills/han-issue-create/",
+      "../dist-server/.pi/skills/han-issue-list/*": ".pi/skills/han-issue-list/",
+      "../dist-server/.pi/skills/han-mr/*": ".pi/skills/han-mr/",
+      "../dist-server/.pi/skills/han-security/*": ".pi/skills/han-security/",
+      "../dist-server/.pi/skills/han-start/*": ".pi/skills/han-start/",
+      "../dist-server/.pi/skills/han-tdd/*": ".pi/skills/han-tdd/",
+      "../dist-server/hwp-mcp/node_modules/winax/*": "hwp-mcp/node_modules/winax/",
+      "../dist-server/hwp-mcp/node_modules/winax/build/Release/*": "hwp-mcp/node_modules/winax/build/Release/",
+      "../dist-server/hwp-mcp/node_modules/winax/build/Release/obj/node_activex/*": "hwp-mcp/node_modules/winax/build/Release/obj/node_activex/",
+      "../dist-server/hwp-mcp/node_modules/winax/build/Release/obj/node_activex/node_activex.tlog/*": "hwp-mcp/node_modules/winax/build/Release/obj/node_activex/node_activex.tlog/",
+      "../dist-server/hwp-mcp/node_modules/winax/build/Release/obj/node_activex/src/*": "hwp-mcp/node_modules/winax/build/Release/obj/node_activex/src/"
+    },
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ]
   }
 }

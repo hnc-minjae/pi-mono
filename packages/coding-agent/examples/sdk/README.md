@@ -53,7 +53,7 @@ const modelRegistry = ModelRegistry.create(authStorage);
 const { session } = await createAgentSession({ authStorage, modelRegistry });
 
 // Custom model
-const model = getModel("anthropic", "claude-opus-4-5");
+const model = getModel("anthropic", "claude-opus-4-6");
 const { session } = await createAgentSession({ model, thinkingLevel: "high", authStorage, modelRegistry });
 
 // Modify prompt

@@ -61,11 +61,12 @@ impl Drop for BridgeProcess {
 #[cfg(windows)]
 fn attach_child_to_job(child: &Child) {
     use windows_sys::Win32::System::JobObjects::*;
+    use windows_sys::Win32::System::Threading::{OpenProcess, PROCESS_SET_QUOTA, PROCESS_TERMINATE};
     use windows_sys::Win32::Foundation::*;
 
     unsafe {
         let job = CreateJobObjectW(std::ptr::null(), std::ptr::null());
-        if job == 0 { return; }
+        if job.is_null() { return; }
 
         let mut info: JOBOBJECT_EXTENDED_LIMIT_INFORMATION = std::mem::zeroed();
         info.BasicLimitInformation.LimitFlags = JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE;
@@ -78,12 +79,12 @@ fn attach_child_to_job(child: &Child) {
         );
 
         // child.id()는 프로세스 ID. 핸들을 얻어야 함
-        let handle = windows_sys::Win32::System::Threading::OpenProcess(
+        let handle = OpenProcess(
             PROCESS_SET_QUOTA | PROCESS_TERMINATE,
             0,
             child.id(),
         );
-        if handle != 0 {
+        if !handle.is_null() {
             AssignProcessToJobObject(job, handle);
             CloseHandle(handle);
         }
@@ -113,8 +114,18 @@ fn write_file(path: String, contents: Vec<u8>) -> Result<(), String> {
     fs::write(&path, &contents).map_err(|e| format!("Failed to write file: {}", e))
 }
 
+/// Windows UNC 접두사(\\?\) 제거 — Node.js가 해당 형식을 메인 모듈 경로로 처리하지 못함
+fn normalize_path(path: PathBuf) -> PathBuf {
+    let s = path.to_string_lossy();
+    if let Some(stripped) = s.strip_prefix(r"\\?\") {
+        PathBuf::from(stripped)
+    } else {
+        path
+    }
+}
+
 fn start_bridge_server(app: &tauri::App) -> Option<Child> {
-    let resource_dir = app.path().resource_dir().ok()?;
+    let resource_dir = normalize_path(app.path().resource_dir().ok()?);
 
     let project_root = if cfg!(debug_assertions) {
         PathBuf::from(env!("CARGO_MANIFEST_DIR"))
@@ -147,9 +158,28 @@ fn start_bridge_server(app: &tauri::App) -> Option<Child> {
 
     cmd.arg(&server_script)
        .current_dir(&project_root)
-       .env("NODE_TLS_REJECT_UNAUTHORIZED", "0")
        .env("RPC_PROVIDER", std::env::var("RPC_PROVIDER").unwrap_or_default())
        .env("RPC_MODEL", std::env::var("RPC_MODEL").unwrap_or_default());
+
+    // 릴리즈 모드에서 리소스 디렉토리 경로를 bridge 서버에 전달
+    #[cfg(not(debug_assertions))]
+    {
+        cmd.env("RESOURCE_DIR", &resource_dir);
+    }
+
+    // 개발 환경에서만 TLS 인증서 검증 비활성화
+    #[cfg(debug_assertions)]
+    {
+        cmd.env("NODE_TLS_REJECT_UNAUTHORIZED", "0");
+    }
+
+    // Windows: 콘솔 창 숨기기 (CREATE_NO_WINDOW)
+    #[cfg(windows)]
+    {
+        use std::os::windows::process::CommandExt;
+        const CREATE_NO_WINDOW: u32 = 0x08000000;
+        cmd.creation_flags(CREATE_NO_WINDOW);
+    }
 
     // Linux: 부모 프로세스 종료 시 커널이 자동으로 SIGTERM 전달
     #[cfg(target_os = "linux")]

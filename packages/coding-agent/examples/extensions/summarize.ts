@@ -160,7 +160,7 @@ export default function (pi: ExtensionAPI) {
 				ctx.ui.notify("Preparing summary...", "info");
 			}
 
-			const model = getModel("openai", "gpt-5.2");
+			const model = getModel("openai", "gpt-5.4");
 			if (!model && ctx.hasUI) {
 				ctx.ui.notify("Model openai/gpt-5.2 not found", "warning");
 			}

@@ -20,6 +20,19 @@ argument: "[주제] — 예: /han-doc-report 2025년 AI 사업 추진 실적"
 | `사업보고서_현황_문제점` | 현황 및 문제점 |
 | `사업보고서_현황_해결방안` | 해결 방안 |
 
+## Step 0: MCP 모드 결정
+
+사용자가 `--mode file` 또는 `--mode auto`를 명시하면 해당 모드를 사용한다.
+명시하지 않으면 기본값은 **auto** 모드이다.
+
+| 모드 | 도구 접두어 | 조건 |
+|------|-----------|------|
+| auto | `mcp__hwp_auto__hwp_auto_*` | 기본값. 한글 COM 자동화 |
+| file | `mcp__hwp_file__hwp_file_*` | `--mode file` 지정 시 또는 auto 도구 호출 실패 시 |
+
+auto 모드에서 open_document 호출이 실패하면(COM 오류), file 모드로 자동 전환하고
+사용자에게 알린다: "한글 연결 실패. file 모드로 전환합니다."
+
 ## Step 1: 입력값 수집
 
 프롬프트에 주제가 포함되어 있으면 바로 사용한다.
@@ -37,6 +50,12 @@ argument: "[주제] — 예: /han-doc-report 2025년 AI 사업 추진 실적"
 
 ## Step 2: HWPX 문서 열기
 
+**auto 모드:**
+```
+mcp__hwp_auto__hwp_auto_open_document(filePath: ".pi/han-doc/templates/사업보고서.hwpx", readOnly: false)
+```
+
+**file 모드:**
 ```
 mcp__hwp_file__hwp_file_open_document(filePath: ".pi/han-doc/templates/사업보고서.hwpx")
 ```
@@ -45,7 +64,7 @@ mcp__hwp_file__hwp_file_open_document(filePath: ".pi/han-doc/templates/사업보
 
 각 누름틀에 대해 순차적으로:
 1. 누름틀의 용도에 맞는 내용을 생성
-2. `mcp__hwp_file__hwp_file_fill_click_field` 도구로 누름틀에 채움
+2. 모드에 따라 `mcp__hwp_auto__hwp_auto_fill_click_field` 또는 `mcp__hwp_file__hwp_file_fill_click_field` 도구로 누름틀에 채움
 
 ### 생성 지침
 
@@ -61,6 +80,13 @@ mcp__hwp_file__hwp_file_open_document(filePath: ".pi/han-doc/templates/사업보
 **사업보고서_현황_해결방안**: 2~3문단, 구체적 해결 방안 및 향후 계획
 
 각 누름틀 채우기:
+
+**auto 모드:**
+```
+mcp__hwp_auto__hwp_auto_fill_click_field(fieldName: "사업보고서_제목", value: "{생성된 내용}")
+```
+
+**file 모드:**
 ```
 mcp__hwp_file__hwp_file_fill_click_field(fieldName: "사업보고서_제목", value: "{생성된 내용}")
 ```
@@ -69,6 +95,13 @@ mcp__hwp_file__hwp_file_fill_click_field(fieldName: "사업보고서_제목", va
 
 topic을 기반으로 파일명을 생성한다 (공백→밑줄, 특수문자 제거).
 
+**auto 모드:**
+```
+mcp__hwp_auto__hwp_auto_save_document(filePath: ".pi/han-doc/output/사업보고서_{topic_sanitized}.hwpx")
+mcp__hwp_auto__hwp_auto_close_document()
+```
+
+**file 모드:**
 ```
 mcp__hwp_file__hwp_file_save_document(filePath: ".pi/han-doc/output/사업보고서_{topic_sanitized}.hwpx")
 ```

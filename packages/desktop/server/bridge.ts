@@ -6,17 +6,24 @@
 
 import { type ChildProcess, spawn } from "node:child_process";
 import { resolve, join } from "node:path";
-import { readFileSync, existsSync } from "node:fs";
+import { readFileSync, existsSync, writeFileSync, mkdirSync } from "node:fs";
 import { homedir } from "node:os";
 import { WebSocketServer, WebSocket } from "ws";
 
 const WS_PORT = parseInt(process.env.WS_PORT || "3001", 10);
 
+// 릴리즈 모드: Tauri가 RESOURCE_DIR 환경변수를 전달
+const isRelease = !!process.env.RESOURCE_DIR;
+
 // Path to the coding-agent CLI
-const CLI_PATH = resolve(import.meta.dirname, "../../coding-agent/dist/cli.js");
+const CLI_PATH = isRelease
+	? resolve(process.env.RESOURCE_DIR!, "coding-agent", "cli.cjs")
+	: resolve(import.meta.dirname, "../../coding-agent/dist/cli.js");
 
 // Working directory for the agent (project root)
-const AGENT_CWD = resolve(import.meta.dirname, "../../..");
+const AGENT_CWD = isRelease
+	? resolve(process.env.RESOURCE_DIR!)
+	: resolve(import.meta.dirname, "../../..");
 
 interface BridgeState {
 	rpcProcess: ChildProcess | null;
@@ -37,16 +44,21 @@ function spawnRpcAgent(): ChildProcess {
 	const model = process.env.RPC_MODEL || "gpt-5.4";
 	args.push("--provider", provider, "--model", model);
 
+	// 릴리즈 번들에서 getPackageDir()가 올바른 경로를 찾도록 PI_PACKAGE_DIR 설정
+	const cliDir = isRelease ? resolve(process.env.RESOURCE_DIR!, "coding-agent") : undefined;
+
 	const child = spawn("node", [CLI_PATH, ...args], {
 		cwd: AGENT_CWD,
-		env: process.env,
+		env: { ...process.env, ...(cliDir ? { PI_PACKAGE_DIR: cliDir } : {}) },
 		stdio: ["pipe", "pipe", "pipe"],
+		windowsHide: true,
 	});
 
 	console.log(`[bridge] RPC agent spawned (pid: ${child.pid})`);
 
 	child.stderr?.on("data", (data: Buffer) => {
-		process.stderr.write(`[rpc stderr] ${data.toString()}`);
+		const msg = data.toString();
+		process.stderr.write(`[rpc stderr] ${msg}`);
 	});
 
 	child.on("exit", (code) => {
@@ -87,11 +99,12 @@ const TOKEN_FILE = join(homedir(), ".config", "han", "mcp-tokens.json");
 
 function getMcpStatus(): { servers: Array<{ key: string; name: string; connected: boolean; expiresAt?: number }> } {
 	// stdio 서버는 토큰 없이 항상 연결 가능
-	const stdioServers = new Set(["hwp-cowriter-file"]);
+	const stdioServers = new Set(["hwp-cowriter-file", "hwp-cowriter-auto"]);
 
 	const servers = [
 		{ key: "atlassian", name: "Atlassian (Jira/Confluence)" },
 		{ key: "hwp-cowriter-file", name: "HWP Cowriter (File)" },
+		{ key: "hwp-cowriter-auto", name: "HWP Cowriter (Auto)" },
 	];
 
 	let tokens: Record<string, any> = {};
@@ -120,8 +133,27 @@ function getMcpStatus(): { servers: Array<{ key: string; name: string; connected
 	};
 }
 
-function handleMcpCommand(ws: WebSocket, data: any): boolean {
+function handleBridgeCommand(ws: WebSocket, data: any): boolean {
 	switch (data.type) {
+		case "get_state": {
+			// Bridge가 직접 응답 — RPC 프로세스의 MCP 로딩 완료를 기다리지 않음.
+			// 모델 초기화는 MCP 연결보다 우선이므로 즉시 제공한다.
+			const provider = process.env.RPC_PROVIDER || "openai";
+			const modelId = process.env.RPC_MODEL || "gpt-5.4";
+			const thinkingLevel = process.env.RPC_THINKING_LEVEL || "medium";
+			ws.send(JSON.stringify({
+				type: "response",
+				id: data.id,
+				success: true,
+				command: "get_state",
+				data: {
+					model: { provider, id: modelId },
+					thinkingLevel,
+					isStreaming: false,
+				},
+			}));
+			return true;
+		}
 		case "mcp_status": {
 			const status = getMcpStatus();
 			ws.send(JSON.stringify({ type: "mcp_status_response", id: data.id, ...status }));
@@ -149,6 +181,15 @@ export function startBridge() {
 	}, 3000);
 
 	const wss = new WebSocketServer({ port: WS_PORT });
+	wss.on("error", (err: NodeJS.ErrnoException) => {
+		if (err.code === "EADDRINUSE") {
+			console.log(`[bridge] Port ${WS_PORT} already in use — another bridge server is running. Exiting.`);
+			state.rpcProcess?.kill("SIGTERM");
+			process.exit(0);
+		} else {
+			console.error("[bridge] WebSocket server error:", err.message);
+		}
+	});
 	console.log(`[bridge] WebSocket server listening on ws://localhost:${WS_PORT}`);
 
 	wss.on("connection", (ws) => {
@@ -163,7 +204,7 @@ export function startBridge() {
 			const message = raw.toString();
 			try {
 				const parsed = JSON.parse(message);
-				if (handleMcpCommand(ws, parsed)) return;
+				if (handleBridgeCommand(ws, parsed)) return;
 			} catch {}
 			sendToRpc(message);
 		});

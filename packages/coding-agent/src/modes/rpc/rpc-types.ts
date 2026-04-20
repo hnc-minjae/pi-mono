@@ -27,6 +27,9 @@ export type RpcCommand =
 	// State
 	| { id?: string; type: "get_state" }
 
+	// Auth
+	| { id?: string; type: "set_api_key"; provider: string; apiKey: string }
+
 	// Model
 	| { id?: string; type: "set_model"; provider: string; modelId: string }
 	| { id?: string; type: "cycle_model" }
@@ -117,6 +120,9 @@ export type RpcResponse =
 
 	// State
 	| { id?: string; type: "response"; command: "get_state"; success: true; data: RpcSessionState }
+
+	// Auth
+	| { id?: string; type: "response"; command: "set_api_key"; success: true }
 
 	// Model
 	| {

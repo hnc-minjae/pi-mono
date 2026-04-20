@@ -9,13 +9,13 @@ describe("supportsXhigh", () => {
 	});
 
 	it("returns true for Anthropic Opus 4.7 on anthropic-messages API", () => {
-		const model = getModel("anthropic", "claude-opus-4-7");
+		const model = getModel("anthropic", "claude-opus-4-6");
 		expect(model).toBeDefined();
 		expect(supportsXhigh(model!)).toBe(true);
 	});
 
 	it("returns false for non-Opus Anthropic models", () => {
-		const model = getModel("anthropic", "claude-sonnet-4-5");
+		const model = getModel("anthropic", "claude-sonnet-4-6");
 		expect(model).toBeDefined();
 		expect(supportsXhigh(model!)).toBe(false);
 	});

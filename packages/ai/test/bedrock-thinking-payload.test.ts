@@ -47,7 +47,7 @@ async function capturePayload(
 
 describe("Bedrock thinking payload", () => {
 	it("uses adaptive thinking for Claude Opus 4.7 when reasoning is enabled", async () => {
-		const baseModel = getModel("amazon-bedrock", "global.anthropic.claude-opus-4-6-v1");
+		const baseModel = getModel("amazon-bedrock", "eu.anthropic.claude-opus-4-6-v1");
 		const model: Model<"bedrock-converse-stream"> = {
 			...baseModel,
 			id: "global.anthropic.claude-opus-4-7-v1",
@@ -62,7 +62,7 @@ describe("Bedrock thinking payload", () => {
 	});
 
 	it("maps xhigh reasoning to effort=xhigh for Claude Opus 4.7", async () => {
-		const baseModel = getModel("amazon-bedrock", "global.anthropic.claude-opus-4-6-v1");
+		const baseModel = getModel("amazon-bedrock", "eu.anthropic.claude-opus-4-6-v1");
 		const model: Model<"bedrock-converse-stream"> = {
 			...baseModel,
 			id: "global.anthropic.claude-opus-4-7-v1",
@@ -77,7 +77,7 @@ describe("Bedrock thinking payload", () => {
 	});
 
 	it("omits display for GovCloud model ids on non-adaptive Claude thinking", async () => {
-		const baseModel = getModel("amazon-bedrock", "us.anthropic.claude-sonnet-4-5-20250929-v1:0");
+		const baseModel = getModel("amazon-bedrock", "eu.anthropic.claude-opus-4-6-v1");
 		const model: Model<"bedrock-converse-stream"> = {
 			...baseModel,
 			id: "us-gov.anthropic.claude-sonnet-4-5-20250929-v1:0",
@@ -91,7 +91,7 @@ describe("Bedrock thinking payload", () => {
 	});
 
 	it("omits display for GovCloud regions on adaptive Claude thinking", async () => {
-		const baseModel = getModel("amazon-bedrock", "global.anthropic.claude-opus-4-6-v1");
+		const baseModel = getModel("amazon-bedrock", "eu.anthropic.claude-opus-4-6-v1");
 		const model: Model<"bedrock-converse-stream"> = {
 			...baseModel,
 			id: "global.anthropic.claude-opus-4-7-v1",

@@ -1,3 +1,9 @@
+/*
+ * Copyright 2025 Hancom Inc. All rights reserved.
+ *
+ * https://www.hancom.com/
+ */
+
 import { icon } from "@mariozechner/mini-lit";
 import { Badge } from "@mariozechner/mini-lit/dist/Badge.js";
 import { Button } from "@mariozechner/mini-lit/dist/Button.js";
@@ -59,6 +65,7 @@ export class ModelSelector extends DialogBase {
 
 	private onSelectCallback?: (model: Model<any>) => void;
 	private allowedProviders?: Set<string>;
+	private modelSourceList?: Array<{ provider: string; id: string; model: any }>;
 	private scrollContainerRef = createRef<HTMLDivElement>();
 	private searchInputRef = createRef<HTMLInputElement>();
 	private lastMousePosition = { x: 0, y: 0 };
@@ -69,6 +76,7 @@ export class ModelSelector extends DialogBase {
 		currentModel: Model<any> | null,
 		onSelect: (model: Model<any>) => void,
 		allowedProviders?: string[],
+		allowedModels?: Model<any>[],
 	) {
 		const selector = new ModelSelector();
 		selector.currentModel = currentModel;
@@ -76,8 +84,13 @@ export class ModelSelector extends DialogBase {
 		if (allowedProviders) {
 			selector.allowedProviders = new Set(allowedProviders);
 		}
+		if (allowedModels && allowedModels.length > 0) {
+			selector.modelSourceList = allowedModels.map((m) => ({ provider: m.provider, id: m.id, model: m }));
+		}
 		selector.open();
-		selector.loadCustomProviders();
+		if (!selector.modelSourceList) {
+			selector.loadCustomProviders();
+		}
 	}
 
 	override async firstUpdated(changedProperties: PropertyValues): Promise<void> {
@@ -199,20 +212,22 @@ export class ModelSelector extends DialogBase {
 	}
 
 	private getFilteredModels(): Array<{ provider: string; id: string; model: any }> {
-		// Collect all models from known providers
-		const allModels: Array<{ provider: string; id: string; model: any }> = [];
-		const knownProviders = getProviders();
-
-		for (const provider of knownProviders) {
-			const models = getModels(provider as any);
-			for (const model of models) {
-				allModels.push({ provider, id: model.id, model });
+		// Use RPC-provided model list when available (includes custom provider models from models.json)
+		let allModels: Array<{ provider: string; id: string; model: any }>;
+		if (this.modelSourceList) {
+			allModels = [...this.modelSourceList];
+		} else {
+			allModels = [];
+			const knownProviders = getProviders();
+			for (const provider of knownProviders) {
+				const models = getModels(provider as any);
+				for (const model of models) {
+					allModels.push({ provider, id: model.id, model });
+				}
 			}
-		}
-
-		// Add custom provider models
-		for (const model of this.customProviderModels) {
-			allModels.push({ provider: model.provider, id: model.id, model });
+			for (const model of this.customProviderModels) {
+				allModels.push({ provider: model.provider, id: model.id, model });
+			}
 		}
 
 		// Filter by allowed providers if set

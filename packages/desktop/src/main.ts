@@ -180,10 +180,16 @@ const createAgent = async () => {
 	await chatPanel.setAgent(agent as any, {
 		// RPC 에이전트가 서버 측에서 API 키를 관리하므로 항상 통과
 		onApiKeyRequired: async () => true,
-		onModelSelect: () => {
-			ModelSelector.open(agent.state.model, async (model) => {
-				await agent.setModel(model.provider, model.id);
-			});
+		onModelSelect: async () => {
+			const availableModels = await agent.getAvailableModels();
+			ModelSelector.open(
+				agent.state.model,
+				async (model) => {
+					await agent.setModel(model.provider, model.id);
+				},
+				undefined,
+				availableModels.length > 0 ? availableModels : undefined,
+			);
 		},
 		toolsFactory: () => [],
 	});

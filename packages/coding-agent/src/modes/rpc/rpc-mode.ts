@@ -18,6 +18,7 @@ import type {
 	ExtensionUIDialogOptions,
 	ExtensionWidgetOptions,
 } from "../../core/extensions/index.js";
+import { resolveModelScope } from "../../core/model-resolver.js";
 import { takeOverStdout, writeRawStdout } from "../../core/output-guard.js";
 import { killTrackedDetachedChildren } from "../../utils/shell.js";
 import { type Theme, theme } from "../interactive/theme/theme.js";
@@ -460,7 +461,15 @@ export async function runRpcMode(runtimeHost: AgentSessionRuntime): Promise<neve
 			}
 
 			case "get_available_models": {
-				const models = await session.modelRegistry.getAvailable();
+				const allModels = await session.modelRegistry.getAvailable();
+				const enabledPatterns = session.settingsManager.getEnabledModels();
+				let models = allModels;
+				if (enabledPatterns && enabledPatterns.length > 0) {
+					const scoped = await resolveModelScope(enabledPatterns, session.modelRegistry);
+					if (scoped.length > 0) {
+						models = scoped.map((sm) => sm.model);
+					}
+				}
 				return success(id, "get_available_models", { models });
 			}
 

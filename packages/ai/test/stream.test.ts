@@ -591,8 +591,30 @@ describe("Generate E2E Tests", () => {
 		it.skip("should complete basic text generation", () => {});
 	});
 
-	describe.skip("zAI Provider (provider removed from models)", () => {
-		it.skip("should complete basic text generation", () => {});
+	describe.skipIf(!process.env.MISTRAL_API_KEY)("Mistral Provider (devstral-medium-latest)", () => {
+		const llm = getModel("mistral", "devstral-medium-latest");
+
+		it("should complete basic text generation", { retry: 3 }, async () => {
+			await basicTextGeneration(llm);
+		});
+
+		it("should handle tool calling", { retry: 3 }, async () => {
+			await handleToolCall(llm);
+		});
+
+		it("should handle streaming", { retry: 3 }, async () => {
+			await handleStreaming(llm);
+		});
+
+		it("should handle thinking mode", { retry: 3 }, async () => {
+			const llm = getModel("mistral", "magistral-medium-latest");
+			await handleThinking(llm, { promptMode: "reasoning" });
+		});
+
+		it("should handle multi-turn with thinking and tools", { retry: 3 }, async () => {
+			const llm = getModel("mistral", "magistral-medium-latest");
+			await multiTurn(llm, { promptMode: "reasoning" });
+		});
 	});
 
 	describe.skip("Mistral Provider (provider removed from models)", () => {

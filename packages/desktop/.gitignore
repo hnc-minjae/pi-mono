@@ -6,3 +6,5 @@ src-tauri/gen/
 dist/
 # Placeholder icon
 app-icon.png
+# Server build output
+dist-server/

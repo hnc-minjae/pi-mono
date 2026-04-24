@@ -76,6 +76,8 @@ export class RpcAgent {
 		this._pendingUserMessages.push(userMsg);
 		this.emitEvent({ type: "message_end", message: userMsg });
 
+		const m = this._state.model;
+		if (m) console.log(`[api] 호출 모델: ${m.provider}/${m.id}  endpoint: ${(m as any).baseUrl}`);
 		this.send({ type: "prompt", message: text });
 	}
 
@@ -189,6 +191,7 @@ export class RpcAgent {
 	}
 
 	async setModel(provider: string, modelId: string) {
+		console.log(`[model] 선택된 모델: ${provider} / ${modelId}`);
 		try {
 			const response = await this.sendCommand({ type: "set_model", provider, modelId });
 			if (response.success && response.data) {

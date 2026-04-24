@@ -1,0 +1,18 @@
+{
+  "name": "@hancom/han-mcp",
+  "version": "0.1.0",
+  "description": "HWP 파일 기반 MCP 서버 래퍼 (LG ChatExaone 연동용, 자체 번들 포함)",
+  "type": "module",
+  "bin": {
+    "han-mcp-hwp-file": "./bin/han-mcp-hwp-file.mjs"
+  },
+  "files": [
+    "bin",
+    "src",
+    "vendor",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}

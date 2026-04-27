@@ -149,6 +149,21 @@ const updateUrl = (sessionId: string) => {
 	window.history.replaceState({}, "", url);
 };
 
+// IndexedDB providerKeys → RPC agent 전체 sync.
+// createAgent 시점뿐 아니라 SettingsDialog가 닫힐 때도 호출해, 사용자가 도중에 추가/변경한 키를 즉시 반영한다.
+const syncProviderKeysToAgent = async () => {
+	if (!agent) return;
+	try {
+		const providers = await storage.providerKeys.list();
+		for (const provider of providers) {
+			const apiKey = await storage.providerKeys.get(provider);
+			if (apiKey) {
+				await agent.setApiKey(provider, apiKey).catch(() => {});
+			}
+		}
+	} catch {}
+};
+
 const createAgent = async () => {
 	if (agentUnsubscribe) {
 		agentUnsubscribe();
@@ -157,18 +172,8 @@ const createAgent = async () => {
 	agent = new RpcAgent(WS_URL);
 	await agent.connect();
 
-	// IndexedDB에 저장된 API 키들을 RPC 에이전트에 전달 (비동기 — UI 블로킹 없음)
-	storage.providerKeys
-		.list()
-		.then(async (providers) => {
-			for (const provider of providers) {
-				const apiKey = await storage.providerKeys.get(provider);
-				if (apiKey) {
-					await agent.setApiKey(provider, apiKey).catch(() => {});
-				}
-			}
-		})
-		.catch(() => {});
+	// 부팅 시 IndexedDB에 저장된 API 키들을 RPC 에이전트에 전달 (비동기 — UI 블로킹 없음)
+	void syncProviderKeysToAgent();
 
 	agentUnsubscribe = agent.subscribe((event: any) => {
 		if (event.type === "agent_end" || event.type === "message_end" || event.type === "agent_start") {
@@ -336,7 +341,10 @@ const renderApp = () => {
 					children: icon(Settings, "sm"),
 					onClick: () => {
 						const mcpTab = createMcpTab(agent);
-						SettingsDialog.open([new ProvidersModelsTab(), new ProxyTab(), mcpTab]);
+						SettingsDialog.open([new ProvidersModelsTab(), new ProxyTab(), mcpTab], () => {
+							// Settings 닫힐 때 IndexedDB 측 변경(추가/수정한 API 키)을 RPC 에이전트로 즉시 sync
+							void syncProviderKeysToAgent();
+						});
 					},
 					title: "Settings",
 				})}

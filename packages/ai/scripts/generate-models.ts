@@ -1,4 +1,10 @@
 #!/usr/bin/env tsx
+/*
+ * Copyright 2025 Hancom Inc. All rights reserved.
+ *
+ * https://www.hancom.com/
+ */
+
 
 import { writeFileSync } from "fs";
 import { join, dirname } from "path";
@@ -808,6 +814,37 @@ async function generateModels() {
 			},
 			contextWindow: 1000000,
 			maxTokens: 64000,
+		});
+	}
+
+	// Hancom LiteLLM (사내 LLM 프록시 — 외부 카탈로그에 없음)
+	if (!allModels.some((m) => m.provider === "hancom-litellm" && m.id === "EXAONE-4.5-33B")) {
+		allModels.push({
+			id: "EXAONE-4.5-33B",
+			name: "EXAONE 4.5 33B",
+			api: "openai-completions",
+			baseUrl: "https://officebot-litellm.apps.orca.cloud.hancom.com/v1",
+			provider: "hancom-litellm",
+			reasoning: true,
+			input: ["text"],
+			cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+			contextWindow: 32768,
+			maxTokens: 16384,
+		});
+	}
+
+	if (!allModels.some((m) => m.provider === "hancom-litellm" && m.id === "google/gemma-4-31B-it")) {
+		allModels.push({
+			id: "google/gemma-4-31B-it",
+			name: "Gemma 4 31B IT",
+			api: "openai-completions",
+			baseUrl: "https://officebot-litellm.apps.orca.cloud.hancom.com/v1",
+			provider: "hancom-litellm",
+			reasoning: false,
+			input: ["text"],
+			cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+			contextWindow: 131072,
+			maxTokens: 8192,
 		});
 	}
 

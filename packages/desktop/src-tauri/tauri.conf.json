@@ -73,7 +73,12 @@
       "../dist-server/.pi/skills/han-mr/*": ".pi/skills/han-mr/",
       "../dist-server/.pi/skills/han-security/*": ".pi/skills/han-security/",
       "../dist-server/.pi/skills/han-start/*": ".pi/skills/han-start/",
-      "../dist-server/.pi/skills/han-tdd/*": ".pi/skills/han-tdd/"
+      "../dist-server/.pi/skills/han-tdd/*": ".pi/skills/han-tdd/",
+      "../dist-server/hwp-mcp/node_modules/winax/*": "hwp-mcp/node_modules/winax/",
+      "../dist-server/hwp-mcp/node_modules/winax/build/Release/*": "hwp-mcp/node_modules/winax/build/Release/",
+      "../dist-server/hwp-mcp/node_modules/winax/build/Release/obj/node_activex/*": "hwp-mcp/node_modules/winax/build/Release/obj/node_activex/",
+      "../dist-server/hwp-mcp/node_modules/winax/build/Release/obj/node_activex/node_activex.tlog/*": "hwp-mcp/node_modules/winax/build/Release/obj/node_activex/node_activex.tlog/",
+      "../dist-server/hwp-mcp/node_modules/winax/build/Release/obj/node_activex/src/*": "hwp-mcp/node_modules/winax/build/Release/obj/node_activex/src/"
     },
     "icon": [
       "icons/32x32.png",

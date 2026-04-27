@@ -12,7 +12,7 @@
  */
 
 import { build } from "esbuild";
-import { cpSync, existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
+import { cpSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { resolve, dirname, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -101,6 +101,15 @@ for (const dir of ["skills", "extensions", "agents", "docs", "prompts", "scripts
 	if (existsSync(src)) {
 		cpSync(src, dest, { recursive: true });
 	}
+}
+
+// .pi/extensions/subagent은 Linux symlink로, Windows 체크아웃 시 텍스트 stub 파일로 materialize되어
+// jiti 파서가 ParseError를 던지고 RPC 에이전트가 fatal exit한다.
+// (upstream 9f9277cc 이후 모든 error 진단이 fatal). 번들에서 제외하여 회귀 차단.
+const brokenSubagentDest = resolve(piDest, "extensions/subagent");
+if (existsSync(brokenSubagentDest)) {
+	rmSync(brokenSubagentDest, { recursive: true, force: true });
+	console.log("[build-server] Excluded broken subagent extension stubs from bundle");
 }
 
 // han-doc/templates 복사 (output 제외)

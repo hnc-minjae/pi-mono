@@ -392,13 +392,14 @@ export default async function mcpBridgeExtension(pi: ExtensionAPI) {
 		return { action: "continue" };
 	});
 
-	// 매 턴마다 han-config.md 내용을 시스템 프롬프트에 주입
-	pi.on("before_agent_start", async () => {
+	// 매 턴마다 han-config.md 내용을 base 시스템 프롬프트에 append
+	// before_agent_start의 systemPrompt 필드는 replace 시맨틱이므로 base를 보존하려면 직접 prepend해야 한다.
+	pi.on("before_agent_start", async (event) => {
 		try {
 			const configPath = join(homedir(), ".config", "han", "han-config.md");
 			const config = readFileSync(configPath, "utf-8");
 			return {
-				systemPrompt: `\n\n## 사용자 환경 설정 (han-config.md)\n\n${config}`,
+				systemPrompt: `${event.systemPrompt}\n\n## 사용자 환경 설정 (han-config.md)\n\n${config}`,
 			};
 		} catch {
 			return {};

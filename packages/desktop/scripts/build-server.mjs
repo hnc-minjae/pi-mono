@@ -95,11 +95,19 @@ const piSrc = resolve(projectRoot, ".pi");
 const piDest = resolve(desktopRoot, "dist-server/.pi");
 
 // 일반 디렉토리 복사
+// subagent 디렉토리는 cp 진입 시점에 skip한다. 이 디렉토리의 {agents,index}.ts는 in-repo의
+// packages/coding-agent/examples/extensions/subagent/* 를 가리키는 symlink인데, cpSync가
+// symlink를 verbatim으로 복사하면 dist-server 기준 상대 경로가 invalid해져 ENOENT가 난다.
+// 5e0f3765의 사후 rmSync는 cp가 통과한 후 처리라 이번 stat-fail 케이스에서는 도달조차 못 한다.
+const isSubagentPath = (src) => {
+	const rel = relative(piSrc, src);
+	return rel === "extensions/subagent" || rel.startsWith(`extensions/subagent/`);
+};
 for (const dir of ["skills", "extensions", "agents", "docs", "prompts", "scripts"]) {
 	const src = resolve(piSrc, dir);
 	const dest = resolve(piDest, dir);
 	if (existsSync(src)) {
-		cpSync(src, dest, { recursive: true });
+		cpSync(src, dest, { recursive: true, filter: (s) => !isSubagentPath(s) });
 	}
 }
 

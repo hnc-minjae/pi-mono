@@ -22,13 +22,27 @@ npm install -g @hancom/han-mcp
 {
   "mcpServers": {
     "hwp-cowriter-file": {
-      "command": "han-mcp-hwp-file"
+      "command": "han-mcp-hwp-file",
+      "env": {
+        "HAN_HWP_ROOT": "/absolute/path/to/han-skills"
+      }
     }
   }
 }
 ```
 
 `stdio` transport로 MCP handshake 완료 후 HWP 파일 조작 도구 32종이 노출된다.
+
+### 경로 해석 규칙 (`HAN_HWP_ROOT`)
+
+스킬 SKILL.md가 도구 호출 시 사용하는 상대 경로(예: `templates/기획서.hwpx`, `output/...`)는 MCP 서버의 **현재 작업 디렉터리(cwd)** 기준으로 풀린다. 모델(예: LG ChatExaone)이 system prompt의 cwd를 인자에 prepend하지 않을 수 있으므로, **MCP 서버 측 cwd를 결정적으로 고정**해야 한다.
+
+`bin/han-mcp-hwp-file.mjs`는 다음 우선순위로 cwd를 결정한다.
+
+1. `HAN_HWP_ROOT` 환경변수가 설정되어 있으면 그 값
+2. 그렇지 않으면 wrapper 자신의 `process.cwd()`
+
+**LG ChatExaone 통합 시 권장**: mcp.json의 `env.HAN_HWP_ROOT`에 `han-skills/` 번들 루트의 절대 경로를 명시한다. 이렇게 하면 SKILL.md의 `templates/기획서.hwpx`가 항상 `<HAN_HWP_ROOT>/templates/기획서.hwpx`로 안정적으로 풀린다.
 
 ## 요구 사항
 

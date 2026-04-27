@@ -19,7 +19,7 @@ import JavaScriptObfuscator from "javascript-obfuscator";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
-const packageRoot = resolve(__dirname, "..");
+const packageRoot = resolve(__dirname, "..", "integrations", "han-mcp");
 const requireFromHere = createRequire(import.meta.url);
 
 let sourcePath;

@@ -1,0 +1,36 @@
+{
+	"providers": [
+		{
+			"id": "hancom-litellm",
+			"name": "Hancom LiteLLM",
+			"type": "openai-completions",
+			"baseUrl": "https://officebot-litellm.apps.orca.cloud.hancom.com/v1",
+			"models": [
+				{
+					"id": "EXAONE-4.5-33B",
+					"name": "EXAONE 4.5 33B",
+					"api": "openai-completions",
+					"provider": "hancom-litellm",
+					"baseUrl": "https://officebot-litellm.apps.orca.cloud.hancom.com/v1",
+					"reasoning": true,
+					"input": ["text"],
+					"cost": { "input": 0, "output": 0, "cacheRead": 0, "cacheWrite": 0 },
+					"contextWindow": 32768,
+					"maxTokens": 16384
+				},
+				{
+					"id": "google/gemma-4-31B-it",
+					"name": "Gemma 4 31B IT",
+					"api": "openai-completions",
+					"provider": "hancom-litellm",
+					"baseUrl": "https://officebot-litellm.apps.orca.cloud.hancom.com/v1",
+					"reasoning": false,
+					"input": ["text"],
+					"cost": { "input": 0, "output": 0, "cacheRead": 0, "cacheWrite": 0 },
+					"contextWindow": 131072,
+					"maxTokens": 8192
+				}
+			]
+		}
+	]
+}

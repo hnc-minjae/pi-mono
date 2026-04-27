@@ -9,6 +9,7 @@ import type { AgentMessage } from "@mariozechner/pi-agent-core";
 import {
 	AppStorage,
 	ChatPanel,
+	type CustomProvider,
 	CustomProvidersStore,
 	IndexedDBStorageBackend,
 	ModelSelector,
@@ -29,6 +30,7 @@ import { icon } from "@mariozechner/mini-lit";
 import { Button } from "@mariozechner/mini-lit/dist/Button.js";
 import { Input } from "@mariozechner/mini-lit/dist/Input.js";
 import { registerCustomMessageRenderers } from "./custom-messages.js";
+import hanProviders from "./han-providers.json" with { type: "json" };
 import { RpcAgent } from "./rpc-adapter.js";
 
 registerCustomMessageRenderers();
@@ -368,6 +370,13 @@ async function initApp() {
     `,
 		app,
 	);
+
+	// First-run: seed bundled Hancom default providers (API key는 사용자가 설정 탭에서 입력)
+	for (const p of hanProviders.providers as CustomProvider[]) {
+		if (!(await customProviders.has(p.id))) {
+			await customProviders.set(p);
+		}
+	}
 
 	chatPanel = new ChatPanel();
 

@@ -13,6 +13,26 @@ type AgentEvent = {
 
 type EventListener = (event: AgentEvent) => void;
 
+/** AgentState.isStreaming은 SDK에서 readonly이지만 RPC 어댑터 내부 미러는 직접 변경해야 한다. */
+type MutableAgentState = Omit<AgentState, "isStreaming"> & { isStreaming: boolean };
+
+/**
+ * AgentMessage에서 텍스트를 추출한다.
+ * content 필드가 없는 custom message variants(예: SystemNotificationMessage)는 빈 문자열을 반환한다.
+ */
+function extractMessageText(message: AgentMessage | string): string {
+	if (typeof message === "string") return message;
+	if (!("content" in message)) return "";
+	const content = message.content;
+	if (typeof content === "string") return content;
+	return (
+		(content as any[])
+			?.filter((c: any) => c.type === "text")
+			.map((c: any) => c.text)
+			.join("") || ""
+	);
+}
+
 /**
  * WebSocket 기반 Agent 어댑터.
  * pi-coding-agent RPC 모드와 통신하여 ChatPanel에 Agent 인터페이스를 제공한다.
@@ -31,7 +51,7 @@ export class RpcAgent {
 
 	private _pendingUserMessages: any[] = [];
 
-	private _state: AgentState = {
+	private _state: MutableAgentState = {
 		systemPrompt: "",
 		model: null as any,
 		thinkingLevel: "off" as ThinkingLevel,
@@ -56,15 +76,7 @@ export class RpcAgent {
 
 	/** Called by AgentInterface.sendMessage() to send a user message */
 	async prompt(message: string | AgentMessage) {
-		const text =
-			typeof message === "string"
-				? message
-				: typeof message.content === "string"
-					? message.content
-					: (message.content as any[])
-							?.filter((c: any) => c.type === "text")
-							.map((c: any) => c.text)
-							.join("") || "";
+		const text = extractMessageText(message);
 
 		if (!text) return;
 
@@ -150,6 +162,21 @@ export class RpcAgent {
 		return this.sendCommand({ type: "mcp_status" });
 	}
 
+	/**
+	 * RPC 프로세스의 세션 메시지를 초기화한다.
+	 * webview reload만으로는 백엔드에 누적된 messages가 남아 다음 prompt에 포함되므로,
+	 * "New Session" 동작 시 반드시 호출해야 한다.
+	 */
+	async newSession(): Promise<void> {
+		try {
+			await this.sendCommand({ type: "new_session" });
+		} catch (err) {
+			console.warn("[rpc-adapter] new_session failed:", err);
+		}
+		this._state.messages = [];
+		this._pendingUserMessages = [];
+	}
+
 	/** MCP 서버 연결 시작 (OAuth 플로우 트리거) */
 	mcpConnect(serverKey: string) {
 		this.send({ type: "mcp_connect", server: serverKey });
@@ -167,15 +194,7 @@ export class RpcAgent {
 	}
 
 	steer(message: AgentMessage | string) {
-		const text =
-			typeof message === "string"
-				? message
-				: typeof message.content === "string"
-					? message.content
-					: (message.content as any[])
-							?.filter((c: any) => c.type === "text")
-							.map((c: any) => c.text)
-							.join("") || "";
+		const text = extractMessageText(message);
 
 		if (!text) return;
 		this.send({ type: "steer", message: text });

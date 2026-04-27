@@ -216,7 +216,17 @@ const loadSession = async (_sessionId: string): Promise<boolean> => {
 	return false;
 };
 
-const newSession = () => {
+const newSession = async () => {
+	if (agent) {
+		try {
+			await agent.newSession();
+		} catch (err) {
+			console.warn("[newSession] RPC reset failed, proceeding with reload:", err);
+		}
+	}
+	currentSessionId = undefined;
+	currentTitle = "";
+	prevTitle = "";
 	const url = new URL(window.location.href);
 	url.search = "";
 	window.location.href = url.toString();
